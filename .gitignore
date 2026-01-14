@@ -1,0 +1,27 @@
+# Python
+pycache/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+.env
+
+# Secrets & Configs
+*.secret
+firebase_config.json
+serviceAccountKey.json
+.runtimeconfig.json
+
+# IDEs
+.vscode/
+.idea/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Deployment
+dist/
+build/
+GCP_Deployment_Script.sh

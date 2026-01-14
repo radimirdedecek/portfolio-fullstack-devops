@@ -1,0 +1,241 @@
+<h2 id="api" class="fw-bold"><img src="static/assets/api.svg" alt="API" class="list-icon3 me-2">REST API</h2>
+<hr class="hrx"/>
+<p class="lead mt-3"></p>
+<h4 class="fw-bold text-dark">Test Project: External API Consumption & Data Pipeline Foundation</h4>
+
+<p class="lead mt-3">
+    This section demonstrates proficiency in the critical first step of any data science pipeline: **reliable and efficient data acquisition** from external sources, paired with **cloud-native persistence**. It use Python's Flask backend to consume the external **The Movie Database (TMDB) API** and then serve the processed data to the frontend. 
+</p>
+
+<p class="lead">
+    This setup implements a robust **Cache-or-Fetch** pattern to optimize performance and respect API rate limits. The caching layer utilizes **Google Cloud Firestore**, demonstrating skills in building fast, scalable, and cloud-persistent data solutions.
+</p>
+
+<h5 class="mt-4 fw-bold">Focus Area: TMDB Data Acquisition</h5>
+<p>
+    To source a dynamic, real-world dataset, the **The Movie Database (TMDB) API** was utilized. This requires proficiency in:
+</p>
+
+<ul class="list-unstyled">
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **API Backend Design:** Building a clean Flask endpoint (<code>/api/fetch_movies</code>) to serve processed JSON data.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **REST API Consumption:** Experience using the <code>requests</code> library for authenticated external API interaction.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **Cloud Persistence (Firestore):** Implementing the **Cache-or-Fetch** pattern using a live NoSQL database (Firestore) instead of local files for better scalability and real-time status feedback.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **Request Handling:** Using the <code>requests</code> library to handle rate-limited API calls and pagination for large datasets.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **JSON Processing:** Efficiently parsing and flattening complex JSON structures containing nested lists (e.g., genre lists, production companies).</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **Data Transformation:** Preparing raw data into a structured format suitable for further analysis (e.g., in the Pandas section).</li>
+</ul>
+
+<h6 class="mt-4 text-white-50">Server-Side Code Snapshot (Python / Rest API Implementation / Cache Check Logic):</h6>
+<pre class="p-2 border bg-secondary rounded overflow-auto" style = "max-height: 365px; max-width: 950px;">
+<code># ---------------------------------------------------------------------------------- #  
+# ---------------------------- FIRESTORE INITIALIZATION ---------------------------- #
+# ---------------------------------------------------------------------------------- # 
+db_firestore_client = None 
+if api_utils.FLASK_ENV != "USE_LOCAL_FILE_FOR_TESTING":
+    if not firebase_admin._apps:                             # Prevent "App already exists" error
+        try:
+            if api_utils.FLASK_ENV == "PRODUCTION":
+                print("Firestore: Initializing in PRODUCTION mode (No JSON key needed).")
+                firebase_admin.initialize_app()              # GCP Cloud Run Path: Uses Service Identities automatically
+            else:
+                # Local/Development Path: Uses the serviceAccountKey.json
+                print(f"Firestore: Initializing in DEVELOPMENT mode using: {api_utils.GOOGLE_APPLICATION_CREDENTIALS}")
+                cred = credentials.Certificate(api_utils.GOOGLE_APPLICATION_CREDENTIALS)
+                firebase_admin.initialize_app(cred)          # Initialize the app 
+            print("SUCCESS: Firestore client initialized.")
+            db_firestore_client = firestore.client()         # Get the Firestore client instance
+        except Exception as e:
+            print(f"FATAL ERROR during Firestore initialization. Firestore will be disabled: {e}")
+
+######################################################################################
+###                    REST API section AJAX endpoint                              ###
+###            Exposes a RESTful endpoint to the frontend                          ###
+###   It calls the core data loading function and returns a clean subset of data   ###
+######################################################################################
+@app.route('/api/fetch_movies', methods=['POST'])
+def fetch_movies_endpoint():
+
+    # Load 1 page (20 movies) for the cache, but only return top 5
+    data, cache_status = api_utils.load_movie_data(6, db_firestore_client)   
+    if data.get('error'):
+        return jsonify({"movies": [], "cache_status": cache_status, "error": data.get('error')}), 500
+
+    # Process movie list (Limit to top 5)
+    movie_list = []
+    for i, result in enumerate(data.get('results', [])):
+        if i >= 5: # Limit to top 5 for display
+            break
+        movie_list.append({
+            "title": result.get('title'),
+            "score": f"{result.get('vote_average'):.1f}", # Format score to 1 decimal
+            "votes": result.get('vote_count'),
+            "release_date": result.get('release_date'),
+            "year": int(result.get('release_date', '0000').split('-')[0]) # Correctly extracts the year
+        })
+    # Return the full JSON response, including the new cache_status
+    return jsonify({
+        "movies": movie_list, 
+        "cache_status": cache_status, 
+        "total_cached": len(data.get('results', [])),
+        "expiration": api_utils.CACHE_TTL_MINUTES/60
+    })
+
+# ---------------------------------------------------------------------------------- #
+# ---                            FIRESTORE LOAD DATA                             --- #
+# --- Reads the cached movie data and timestamp from the Firestore document.     --- #
+# --- for testing "USE LOCAL FILE FOR TESTING" Reads the movie data from local file. #
+# ---------------------------------------------------------------------------------- #
+def load_TMDB_data(db_client):
+    if FLASK_ENV == "USE_LOCAL_FILE_FOR_TESTING":                         # testing - Fetch from Local File
+        if os.path.exists(TMDB_DATA_FILE):
+            try:
+                with open(TMDB_DATA_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    status_msg = f"{FLASK_ENV}: Fetched from local file TMDB_DATA_FILE: {TMDB_DATA_FILE}"
+                    print(status_msg)
+                    return data.get('results', []), status_msg
+            except Exception as e:
+                status_msg = f"{FLASK_ENV}: Failed to fetch data from local file TMDB_DATA_FILE: {TMDB_DATA_FILE}"
+                print(status_msg)
+        else:
+            status_msg = f"{FLASK_ENV}: Failed to fetch data. local file not exists TMDB_DATA_FILE: {TMDB_DATA_FILE}"
+            print(status_msg)
+        return None, status_msg
+        
+    if db_client is None:                                                        # Fetch from Firestore
+        print("Cloud read skipped: Firestore client is None.")
+        return None, "Firestore not initialized."
+    try:
+        doc_ref = db_client.collection(FIRESTORE_COLLECTION).document(FIRESTORE_DOCUMENT)
+        doc = doc_ref.get()
+        if not doc.exists:
+            print("Cloud cache document not found.")
+            return None, "Cloud cache empty."
+        data_entry = doc.to_dict()
+        last_fetch = data_entry.get("timestamp")
+        now_utc = datetime.now(timezone.utc)
+        if last_fetch:
+            # Firestore timestamps are usually timezone-aware datetime objects
+            if not last_fetch.tzinfo:
+                # If timezone is missing, assume UTC for local comparison
+                last_fetch = last_fetch.replace(tzinfo=timezone.utc)
+            # Check if the cache is expired
+            if last_fetch + timedelta(minutes=CACHE_TTL_MINUTES) > now_utc:
+                status_msg = f"SUCCESS: Data loaded from REAL Firestore Cache (Last updated: {last_fetch.strftime('%Y-%m-%d %H:%M:%S UTC')})."
+                print(status_msg)
+                return data_entry.get("data"), status_msg   
+            else:
+                status_msg = f"REAL Firestore Cache expired. Last fetch: {last_fetch.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                print(status_msg)
+                return None, status_msg
+        else:
+             status_msg = "Firestore document found, but timestamp field is missing or invalid."
+             print(status_msg)
+             return None, status_msg
+    # Use specific GCP exceptions for better clarity
+    except gcp_exceptions.PermissionDenied as e:
+        status_msg = f"Error reading from Firestore (Permission Denied): {e}"
+        print(status_msg)
+        return None, status_msg
+    except Exception as e:
+        status_msg = f"Generic Error reading from Firestore: {e}"
+        print(status_msg)
+        return None, status_msg
+
+# ---------------------------------------------------------------------------------- #
+# ---                     SAVE TMDB DATA TO FIRESTORE CLOUD                      --- #
+# --- Writes the movie data and the current timestamp to the Firestore document.---- #
+# ---------------------------------------------------------------------------------- #
+def save_TMDB_data_to_cloud(data, db_client):
+    if db_client is None:
+        status_msg = f"--- Cloud write skipped: Firestore client is None/not initialized."
+        print(status_msg)
+        return status_msg
+    print("Writing data to REAL Firestore Persistence layer...")
+    data_to_store = {
+        # IMPORTANT: Use timezone.utc for consistency
+        "timestamp": datetime.now(timezone.utc), 
+        "data": data 
+    }
+    try:
+        doc_ref = db_client.collection(FIRESTORE_COLLECTION).document(FIRESTORE_DOCUMENT)
+        doc_ref.set(data_to_store) 
+        status_msg = "SUCCESS: Data written to Firestore."
+        print(status_msg)
+        return status_msg
+    # Use specific GCP exceptions for definitive error reporting
+    except gcp_exceptions.PermissionDenied as e:
+        status_msg = f"--- FIRESTORE WRITE FAILED (Permission Denied): Check Rules --- Error: {e}"
+        print(status_msg)
+        return status_msg
+    except Exception as e:
+        status_msg = f"--- FIRESTORE WRITE FAILED (Unknown Error) --- Error: {e}"
+        print(status_msg)
+        return status_msg
+
+# ---------------------------------------------------------------------------------- #      
+# ---                   TMDB Data Loading (Cache-or-Fetch Logic)                ---- #
+# --- The main data fetching function:                                          ---- #
+# --- Fetch tmdb_data from FIRESTORE or TMDB API or Local File                  ---- #
+# ---------------------------------------------------------------------------------- #
+def load_movie_data(num_pages=1, db_client=None):
+    tmdb_data, status_message = load_TMDB_data(db_client)                # Fetch from FIRESTORE or Local File
+    if tmdb_data:
+        return tmdb_data, status_message
+    if FLASK_ENV == "USE_LOCAL_FILE_FOR_TESTING":               # testing - Fetch from Local File
+        return None, status_message
+
+    print(f"No valid cache found. Fetching from TMDB API...")   # Fetch from external API (TMDB)
+    all_results = []
+    for page in range(1, num_pages + 1):    # Fetch movie data (1 page = 20 movies)
+        url = f"{BASE_URL}{page}"
+        try:
+            response = requests.get(url, headers=headers) 
+            response.raise_for_status()     # Raises an HTTPError for bad responses (4xx or 5xx)
+            data = response.json()
+            all_results.extend(data.get('results', []))
+            print(f"Fetched page {page}. Total movies: {len(all_results)}")
+            if len(all_results) >= 120:     # Stop after 120 movies (6 page)
+                break
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Failed to fetch data from TMDB: {e}"
+            print(error_msg)                # Return empty data and the error message
+            return {"results": [], "error": error_msg}, error_msg 
+
+    if all_results:                         # Save tmdb_data, return fetched data and status
+        data_to_store = {"results": all_results}
+        write_status = save_TMDB_data_to_cloud(data_to_store, db_client) 
+        return data_to_store, f"TMDB API Fetched and cache written: {write_status}"
+    else:
+        print(f"Error: Save to Cloud Cache [all_results] is empty")   
+                      
+    return {"results": []}, status_message  # Return empty data and the last status message 
+</code></pre>
+
+<h5 class="mt-4 fw-bold">Interactive Demo: Fetch Top Movies</h5>
+<div class="d-flex align-items-center mb-2">
+  <button id="fetchMoviesBtn" class="btn btn-primary btn-lg me-3" style="width: 300px;">
+    <i class="fas fa-play me-2"></i>Get TMDB Top 5 Movies
+  </button>
+  <span id="loadingIndicator" class="spinner-border text-primary d-none" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </span>
+</div>
+
+<!-- NEW ELEMENT: This div will display the cache status (hit, miss, expired) -->
+<div id="statusMessage" class="small text-muted my-2 p-2 rounded" style="min-height: 25px;">
+    <!-- Status message will be injected here by scripts.js -->
+</div>
+
+<!-- Area where the results will be displayed -->
+<div id="movieResults" class="results-container mt-1 p-3 rounded border border-dark bg-gray" style="max-height: 550px; max-width: 1150px;">
+    <p class="text-center text-dark m-0">Click the RUN button above to execute the server-side API fetch logic and see the data.</p>
+</div>
+
+<h5 class="mt-4 fw-bold">Key Competencies Demonstrated:</h5>
+<ul class="list-unstyled">
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **Request Handling:** Secure, server-side interaction with external APIs.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **Cloud Caching:** Utilizing Firestore for persistence, reducing latency and reliance on the external API.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i> **Web Backend/Flask:** Implementing a custom RESTful API endpoint.</li>
+</ul>
+

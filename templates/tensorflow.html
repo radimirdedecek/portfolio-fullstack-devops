@@ -1,0 +1,403 @@
+<h2 id="tensorflow" class="fw-bold"><img src="static/assets/tensorflow.svg" alt="TensorFlow" class="list-icon3 me-2">TensorFlow Analysis</h2>
+<hr class="hrx"/>
+<p class="lead mt-3"></p>
+<h4 class="fw-bold text-dark">Test Project: MNIST Digit Recognition & Image Heuristics</h4>
+
+<p class="lead mt-3">
+    This section showcases the use of the **TensorFlow** library. It will let users draw a digit, and get a prediction from a TensorFlow model.
+    It demonstrates real-time image preprocessing, centering heuristics, and deep learning inference.
+    The MNIST dataset is the 'Hello World' of computer vision. It compares your input to thousands of labeled handwritten digits. 
+    A hybrid architecture is implemented here, that uses local K8s-optimized TensorFlow models in development and fails over to Cloud Vision APIs in serverless production to optimize latency and cost.
+</p>
+
+<h5 class="mt-4">Interactive Demo: Draw a single digit (0-9) in the box below. A neural network will process the 28x28 grayscale image and attempt to identify it. </h5>
+
+<div class="card-group gx-4 gy-4">
+    <div class="card border border-dark rounded me-4 me-lg-0" style="min-width:265px; max-width:265px;">
+        <div class="card-body text-center py-2 px-0">
+            <div class="d-flex justify-content-between pt-1 pb-3 mx-1 px-4">
+                <h5><i class="fas fa-edit me-2 text-primary"></i>Draw Here</h5>
+                <button id="clearTensorflowAnalysisBtn" class="btn-md rounded bg-dark text-light px-1" onclick="clearCanvas()"
+                    style="min-width: 25px; border: 0; transition: all 0.5s ease;">
+                    <i class="fas fa-sync-alt me-2"></i>Clear</button>
+            </div>
+            <canvas id="canvas" width="280" height="280" 
+                style="border: 1px solid #666; background: #fff; cursor: crosshair; border-radius: 7px;
+                max-width: 220px; height: auto; display: block; margin-left: auto; margin-right: auto;">
+            </canvas><br>
+            <button id="runTensorflowAnalysisBtn" class="btn btn-primary mb-2"  onclick="submitCanvas()">
+            <i class="fas fa-play me-2"></i> Predict digit</button>
+        </div>
+    </div>
+    <div class="card border border-dark rounded d-none d-lg-block mx-4" style="min-width:205px; max-width:330px;">
+        <div class="card-body text-start py-2">
+            <h5><i class="fas fa-layer-group mt-2 me-3 text-info"></i>Reference Data</h5>
+            <!-- <img src="/static/assets/img/MNIST_images.png" width="355" height="355" class="img-fluid my-3" style="border:2px solid #999; background:#345;"> -->
+            <div class="card mb-2 mt-4 rounded-3 bg-black border border-1 border-dark">
+                <img src="/static/assets/img/tf_Mnist_Examples.png" alt="TensorFlow Mnist Reference Data Image" class="me-2 my-2 img-thumbnail img-fluid invert" style="filter: invert(100%);border: 0; max-height: 160px; width: auto;">
+                <p class="text-uppercase text-center">Training Set: 60,000 Samples</p>
+            </div>
+            <div class="card rounded-3 border-dark bg-dark my-2">
+                <p class="mb-0 mt-2 ms-3 text-uppercase text-dark fw-bold">Heuristic Checks:</p>
+                <ul class="list-unstyled small">
+                    <li class="mt-1">
+                        <i class="fas fa-check-circle text-success mx-3"></i><span>Centering: Enabled</span>
+                    </li>
+                    <li class="my-0">
+                        <i class="fas fa-check-circle text-success mx-3"></i><span>Noise Filtering: Active</span>
+                    </li>
+                </ul>                    
+            </div>
+        </div>
+    </div>
+    <div class="card border border-dark rounded" style="min-width:265px; max-width:265px;">
+        <div class="card-body text-start py-2">
+            <h5 id="TF_right_header"><i class="fas fa-microchip mt-2 me-3 text-warning"></i>AI Insights</h5>
+            <p class="mb-2 mt-3 text-uppercase text-dark fw-bold">Neural Input:</p>
+            <img id="right_img1" src="/static/assets/img/tf_awaiting.png" width="90" height="90" class="mx-auto d-block rounded-3 border border-1 border-dark" 
+                style="border:2px solid #999; background:#345;">
+            <hr>
+            <p class="my-0 py-0 text-uppercase text-dark fw-bold">Classification Result:</p>
+            <img id="right_img2" src="/static/assets/img/tf_ready.png" width="90" height="90" class="mt-2 mb-3 mx-auto d-block rounded-3 border border-1 border-dark" 
+                style="border:2px solid #999; background:#345;" alt="TensorFlow Result Image">
+            <div id="confidence_bar_container" class="progress my-2" style="height: 10px;">
+                <div id="confidence_bar" class="progress-bar bg-primary" role="progressbar" style="width: 10%"></div>
+            </div>
+            <small id="confidence_text" class=" x-small mt-1 d-block text-start">No active prediction. Awaiting draw...</small>
+        </div>
+    </div>
+</div>
+
+<script>
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+    let drawing = false;
+    const buttonclear = document.getElementById('clearTensorflowAnalysisBtn');
+    const buttonrun   = document.getElementById('runTensorflowAnalysisBtn');
+    const right_img1   = document.getElementById("right_img1")
+    const right_img2   = document.getElementById("right_img2")
+    const confBar = document.getElementById("confidence_bar");
+    const confText = document.getElementById("confidence_text");
+    const barContainer = document.getElementById("confidence_bar_container");
+    const right_header = document.getElementById("TF_right_header");
+
+    ctx.lineWidth = 18; ctx.lineCap = "round"; 
+    ctx.strokeStyle = "#fff";
+    canvas.onmousedown = e => { drawing = true; ctx.beginPath(); };
+    canvas.onmouseup = e => { drawing = false; };
+    canvas.onmouseout = e => { drawing = false; };
+    canvas.onmousemove = function(e) {
+        if (drawing) {
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            ctx.lineTo(x, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y);
+        }
+    };
+
+
+    
+    // --- COORDINATE & DRAWING LOGIC --- START --- 11.1.2026
+    function getCoordinates(e) {
+        let rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            // Touch event
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            // Mouse event
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    function startDrawing(e) {
+        drawing = true;
+        const coords = getCoordinates(e);
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+        // Prevent scrolling on touch
+        if (e.type === 'touchstart') e.preventDefault();
+    }
+    function draw(e) {
+        if (!drawing) return;
+        const coords = getCoordinates(e);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(coords.x, coords.y);
+        // Prevent scrolling on touch
+        if (e.type === 'touchmove') e.preventDefault();
+    }
+    
+    function stopDrawing() {
+        drawing = false;
+    }
+
+    // --- EVENT LISTENERS ---
+    // Desktop Mouse Events
+    canvas.onmousedown = startDrawing;
+    canvas.onmousemove = draw;
+    canvas.onmouseup = stopDrawing;
+    canvas.onmouseout = stopDrawing;
+
+    // iPad/Mobile Touch Events
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing, { passive: false });
+
+    // --- COORDINATE & DRAWING LOGIC ---  END --- 11.1.2026
+
+
+    canvas.onmousemove = function(e) {
+        if (drawing) {
+            let rect = canvas.getBoundingClientRect();
+            
+            // Calculate scaling factors
+            // (Internal Width / Visual Width)
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            // Apply scaling to the relative mouse position
+            let x = (e.clientX - rect.left) * scaleX;
+            let y = (e.clientY - rect.top) * scaleY;
+
+            ctx.lineTo(x, y); 
+            ctx.stroke();
+            ctx.beginPath(); 
+            ctx.moveTo(x, y);
+        }
+    };
+    
+    function clearCanvas() {
+        right_img1.src = "/static/assets/img/tf_awaiting.png";
+        right_img1.alt = "Img for TF Neural Input";
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        confText.innerText = "No active prediction. Awaiting draw...";
+        // Re-enable button and hide spinner
+        barContainer.classList.add("d-none");
+        buttonclear.disabled = false;
+        buttonrun.disabled = false;
+        right_img2.src = "/static/assets/img/tf_ready.png";
+        right_img2.alt = "TF result Img";
+    }
+    clearCanvas();
+    
+    async function submitCanvas() {
+        const originalText = buttonrun.innerHTML;
+        buttonclear.disabled = true;
+        buttonrun.disabled = true;
+        buttonrun.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> running ... ';
+        right_img2.src = "/static/assets/img/tf_spinner.svg";
+        confText.innerText = "running ..."
+        await new Promise(resolve => setTimeout(resolve, 300));  // Wait for 1000ms (1 second)
+   
+        try {  // #################  NEW FOR GEMINI API  ################# // Wrap toBlob in a Promise to use await
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+            let formData = new FormData();
+            formData.append("image", blob, "digit.png");
+            // Wait for the server response (GCP/Gemini delay happens here)
+            // const response = await fetch("/predict", {method: "POST", body: formData});   // old - calling fetch() directly
+            const response = await smartFetch("/predict", {method: "POST", body: formData}); // Global Activity Monitor - Smart Fetch Wrapper 
+            const data = await response.json();
+            confText.innerText = "Neural Network Result: " + data.result;  // Process Results
+            right_img2.src = "/static/assets/img/tf_empty.png";
+
+            if (data.digit !== "EMPTY") {                                  // Almost nothing drawn
+                const img = new Image();
+                img.src = "data:image/png;base64," + data.mnist_img;
+                right_img1.src = img.src;
+                if (data.digit === "UNSURE") {                             // Model is guessing/unsure
+                    right_img2.src = "/static/assets/img/tf_no_digit.png";
+                } else {
+                    right_img2.src = "/static/assets/img/tf_" + data.digit + ".png";
+                }
+            }
+            right_header.innerHTML = '<i class="fas fa-microchip mt-2 me-3 text-warning"></i>AI Insights: ' + data.engine; 
+            if (data.digit === "EMPTY" || data.digit === "UNSURE" || data.digit === "gemini_ERR" || data.digit === "gemini_API") {      
+                right_img1.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i> ${data.result}</span>`;
+                barContainer.classList.add("d-none");
+            } else {                                                       // Success State
+                right_img1.innerHTML = `<span class="display-6 fw-black d-block">${data.digit}</span><span class="text-success small">High Confidence Match</span>`;
+                barContainer.classList.remove("d-none");
+                confBar.style.width = (data.confidence * 100) + "%";
+                confText.innerText = "Neural Network Result: " + (data.confidence * 100).toFixed(1) + "% Probability";
+            }
+        } catch (error) {
+            console.error("Prediction failed:", error);
+            confText.innerText = "Error: Could not connect to the AI service.";
+        } finally {                                                          // Reset UI - This now waits until the try/catch is finished
+            buttonclear.disabled = false;
+            buttonrun.disabled = false;
+            buttonrun.innerHTML = originalText;
+        }
+    }
+</script>  
+
+<h6 class="mt-4 text-white-50">Server-Side Code Snapshot (Python / TensorFlow Implementation):</h6>
+<pre class="p-2 border bg-secondary rounded overflow-auto" style = "max-height: 365px; max-width: 950px;">
+<code>######################################################################################
+###                            TensorFlow ENDPOINT                                 ###
+###           Digit recognition (MNIST) - The "hello world" of ML/DL               ###
+###         build+train a neural net to recognize hand-written digits              ###
+######################################################################################  
+@app.route("/predict", methods=["POST"])
+def predict():
+    if "image" not in request.files:
+        return jsonify({"result": "Program error - No image uploaded"}), 400
+    try:
+        file = request.files["image"]
+        arr_2d = api_utils.preprocess_image(file)           # Preprocess to 2D array (28, 28) convert to grayscale, resize, convert to numpy array, normalize ...
+        img_b64 = api_utils.get_image_b64(arr_2d)           # Generate Base64 from 2D array for Gemini/Response
+        digit = None
+        confidence = 0.0
+        margin = 0.0
+        engine = "TensorFlow (Local)"
+        if np.sum(arr_2d > 0.2) < 10:                           # Almost nothing drawn
+            digit = "EMPTY"
+            result = "Drawing/Canvas is empty or too small."
+            confidence = 0.0
+        else:
+            if api_utils.HAS_TF:                                # Using Local TensorFlow Model...
+                model = api_utils.get_or_train_model1()
+                input_arr = arr_2d.reshape(1, 28, 28)           # Reshape ONLY for the prediction
+                probs = model.predict(input_arr, verbose=0)[0]  # predict Using Local TensorFlow Model
+                
+                digit = int(np.argmax(probs))
+                confidence = float(np.max(probs))
+                sorted_probs = np.sort(probs)                   # Additional TF Heuristics
+                margin = float(sorted_probs[-1] - sorted_probs[-2])
+            else:                                               # TensorFlow not found. Use Google Gemini API...
+                gemini_res = api_utils.call_gemini_vision(img_b64)
+                digit = gemini_res.get("digit")
+                confidence = float(gemini_res.get("confidence", 0.0))
+                margin = 0.5 
+                engine = "Gemini (Cloud API)"
+            # Heuristics for "No Digit"
+            if str(digit) == "gemini_ERR":
+                result = "Google Gemini API AI Service temporarily unavailable."
+            elif str(digit) == "gemini_API":
+                result = "Google Gemini API key not valid."
+            elif confidence < 0.80 or margin < 0.4:             # Model is guessing/unsure
+                digit = "UNSURE"
+                source = "TF Model" if api_utils.HAS_TF else "Gemini API"
+                result = f"Input is unclear. {source} is guessing/unsure."
+            else:
+                result = f"{digit} (confidence={confidence:.2f})"
+        return jsonify({"result": result,
+                        "digit": str(digit),
+                        "confidence": str(round(confidence, 4)), 
+                        "mnist_img": img_b64,
+                        "engine": engine}) 
+    except Exception as e:
+        print(f"Prediction error: {e}")
+        return jsonify({"result": f"Server Error: {str(e)}"}), 500
+
+# ---------------------------------------------------------------------------------- #       
+# ---                            TensorFlow with Keras                           --- # 
+# ---                            train a model on MNIST                          --- #
+# ---                 This will only train on first app start                    --- #
+# ---------------------------------------------------------------------------------- #
+def get_or_train_model1():
+    global mnist_model1
+    if mnist_model1 is not None:
+        return mnist_model1
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    model_path = os.path.join(basedir, "mnist_model1.h5")
+    try:
+        mnist_model1 = tf.keras.models.load_model(model_path)         # Load the model if it exists
+        print(f"MNIST {model_path} loaded from disk.")
+    except Exception as e:
+        print(f"Training a new MNIST model... Reason: {e}")
+        (x_train, y_train), _ = tf.keras.datasets.mnist.load_data()
+        # x_train, x_test = x_train / 255.0, x_test / 255.0           # Normalize pixel values to be between 0 and 1
+        x_train = x_train / 255.0                                     # Normalize pixel values to be between 0 and 1
+        mnist_model1 = models.Sequential([                            # Build a simple Sequential model
+            layers.Flatten(input_shape=(28, 28)),
+            layers.Dense(128, activation='relu'),
+            layers.Dense(10, activation='softmax')
+            # layers.Dropout(0.2)                                     # Add dropout for better generalization
+        ])
+        mnist_model1.compile(optimizer='adam',
+                      loss='sparse_categorical_crossentropy',
+                      metrics=['accuracy'])
+        mnist_model1.fit(x_train, y_train, epochs=5, batch_size=32, verbose=2)    # Train for 5 epochs
+        # mnist_model1.evaluate(x_train, y_train, verbose=0)          # initialize metrics (optional, not needed for most)
+        mnist_model1.save(model_path)                                 # Save for future use     
+    return mnist_model1
+
+# ---------------------------------------------------------------------------------- #       
+# ---                            TensorFlow with Keras                           --- # 
+# ---                             preprocess_image 2D                            --- #
+# ---             Returns a 2D numpy array (28, 28) normalized to 0-1.           --- #
+# ---------------------------------------------------------------------------------- #
+def preprocess_image(image_file):
+    img = Image.open(image_file).convert("L").resize((28, 28)) # Open and convert to grayscale
+    # Invert if necessary (MNIST is white on black) If users draw white on black in HTML, we stay as is.
+    inverted_img = img                                         # Assuming white on black
+    bbox = inverted_img.getbbox()                              # Find bounding box of the drawing to center it
+    if bbox:                                                   # This helps a lot with "squiggles" or off-center drawings
+        img = inverted_img.crop(bbox)                          # Crop to the digit and add padding to make it 20x20 (MNIST style)
+        img.thumbnail((20, 20), Image.Resampling.LANCZOS)      # Resize the actual drawing to 20x20
+        new_img = Image.new("L", (28, 28), 0)                  # Create a new black 28x28 canvas 
+        offset = ((28 - img.width) // 2, (28 - img.height) // 2)
+        new_img.paste(img, offset)                             # paste the 20x20 digit in the center
+        img = new_img
+    else:
+        img = img.resize((28, 28), Image.Resampling.LANCZOS)   # Empty canvas
+    arr = np.array(img)                                        # Convert to array 
+    if np.mean(arr) > 127: 
+        arr = 255 - arr 
+    return arr / 255.0                                         # normalize
+
+# ---------------------------------------------------------------------------------- #       
+# ---                            TensorFlow with Keras                           --- # 
+# ---              preprocess_image base64 PNG for Google Gemini API             --- #
+# ---                RConverts a 2D numpy array (0-1) to base64 PNG.             --- #
+# ---------------------------------------------------------------------------------- #
+def get_image_b64(arr):
+    buf = io.BytesIO()
+    # Ensure to use the 2D array here
+    pil_img = Image.fromarray((arr * 255).astype("uint8"))
+    pil_img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode('utf-8')
+
+# ---------------------------------------------------------------------------------- #       
+# ---                     Fallback prediction using Gemini API                   --- # 
+# ---              If TensorFlow not found. Use Google Gemini API                --- #
+# ---------------------------------------------------------------------------------- # 
+def call_gemini_vision(img_b64):
+    prompt = "Identify the handwritten digit (0-9). Return ONLY a JSON: {\"digit\": number, \"confidence\": float}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}, {"inlineData": {"mimeType": "image/png", "data": img_b64}}]}],
+        "generationConfig": {"responseMimeType": "application/json"}
+    }
+    for i in range(2):
+        try:
+            res = requests.post(GEMINI_URL, json=payload, timeout=10)
+            if res.status_code == 200:
+                return json.loads(res.json()['candidates'][0]['content']['parts'][0]['text'])
+            error_info = res.json().get('error', {})
+            error_msg = error_info.get('message', 'Unknown API Error')
+            error_code = error_info.get('code', res.status_code)
+            print(f"Gemini API Error ({error_code}): {error_msg}")
+            if res.status_code != 429:
+                return {"digit": "gemini_API", "confidence": 0.0}  # gemini_API
+            sleep(2**i)
+        except:
+            sleep(2**i)
+    return {"digit": "gemini_ERR", "confidence": 0.0}
+</code></pre>
+    

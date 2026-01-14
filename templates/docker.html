@@ -1,0 +1,210 @@
+<h2 id="docker" class="fw-bold"><img src="static/assets/docker.svg" alt="docker" class="list-icon3 me-2">Docker &
+    Kubernetes</h2>
+<hr class="hrx" />
+<p class="lead mt-3"></p>
+<h4 class="fw-bold text-dark">Test Project: Containerization & Live Deployment</h4>
+<p class="lead mt-3 small"><i class="fas fa-cloud-upload-alt fa-1x text-primary"></i>
+This entire portfolio application is containerized with <strong>Docker</strong> and deployed as a serverless microservice on <strong>Google Cloud Platform (GCP)</strong>,<br>demonstrating a full production-ready lifecycle.
+</p>
+
+<h5 class="fw-bold mt-4">Implementation Specs and Technical strategies used in this project:</h5>
+<ul class="list-unstyled">
+    <li><i class="fas fa-check-circle me-2 text-dark"></i><strong>Multi-stage Builds:</strong> Compiling C-extensions in a builder stage to keep the final runtime image under 450MB.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i><strong>Layer Optimization:</strong> Strategic command ordering to maximize Docker build-cache efficiency and reduce build times.</li>
+    <li><i class="fas fa-check-circle me-2 text-dark"></i><strong>Cloud Run:</strong> Deployed as an OCI-compliant container for high-availability, auto-scaling serverless execution.</li>
+    <li><i class="fas fa-shield-alt me-2 text-dark"></i><strong>.dockerignore Optimization:</strong> Explicitly excluding <code>venv</code>, <code>.env</code>, and <code>serviceAccountKey.json</code> to ensure image security and minimal size.</li>
+    <li><i class="fas fa-compress-arrows-alt me-2 text-dark"></i><strong>Requirements Pruning:</strong> Using <code>tensorflow-cpu</code> and removing dev-dependencies to shrink the production footprint.</li>
+    <li><i class="fas fa-broom me-2 text-dark"></i><strong>Aggressive Pruning:</strong> Removing <code>__pycache__</code>, tests, and library documentation during the build process.</li>
+
+</ul>
+
+<div class="row mt-4">
+    <!-- Docker Development Column -->
+    <div class="col-12 col-xl-12 col-xxl-6 mb-4">
+        <div class="px-4 pt-3 border border-dark rounded shadow-sm bg-gray h-100">
+            <h5 class="fw-bold"><i class="fab fa-docker me-2 text-dark"></i>Docker Development</h5>
+            <p class="text-muted">Daily commands for local and remote development.</p>
+            <ul class="list-unstyled small">
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> Image Creation & Tagging (Versioning)</li>
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> Data Persistence (Volumes & Bind Mounts)</li>
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> Multi-Container Networking & DNS</li>
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> Docker Compose for local Orchestration</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Kubernetes Clusters (K8s) Column -->
+    <div class="col-12 col-xl-12 col-xxl-6 mb-4">
+        <div class="px-4 pt-3 border border-dark rounded shadow-sm bg-gray h-100">
+            <h5 class="fw-bold"><i class="fas fa-dharmachakra me-2 text-dark"></i>Kubernetes (K8s)</h5>
+            <p class="text-muted">Bootcamp-certified concepts ready for deployment when needed.</p>
+            <ul class="list-unstyled small">
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> K8s Architecture (Control Plane/Nodes)</li>
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> Scalable Deployments & ReplicaSets</li>
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> K8s Services (Load Balancers/Ingress)</li>
+                <li class="mb-2"><i class="fas fa-check-circle me-2 text-success"></i> Self-healing & Automated Rollouts</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="my-4 p-2 bg-gray border border-dark rounded d-flex align-items-center text-dark">
+    <i class="fas fa-cloud-upload-alt fa-1x me-3"></i>
+    <span class="small">
+        Proficient in the full DevOps lifecycle: packaging <strong>Python/C++</strong> environments into standard images
+        and managing them via <strong>Kubernetes</strong> for automated scaling and resilience.<br>
+    </span>
+</div>
+
+<div class="row">
+    <div class="col-12 col-xxl-6 mx-xl-6">
+        <h6 class="text-white-50">Dockerfile (Multi-Stage)</h6>
+        <pre class="p-2 border bg-secondary rounded overflow-auto" style="max-height: 365px;">
+<code>###################################################################################
+#                        Multi-stage build for efficiency                         #
+#                                STAGE 1: Builder                                 #
+###################################################################################
+FROM python:3.11-slim AS builder
+
+# Install system dependencies needed for compiling C extensions
+RUN apt-get update && apt-get install -y \
+    gcc \                                                                 
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only the files needed for the build first (optimization)
+COPY requirements.txt .
+COPY fast_math.c .
+
+# Compile the C extension - use python3-config to ensure link against the correct headers
+RUN gcc -shared -o fast_math.so -fPIC $(python3-config --includes) fast_math.c
+
+# Install requirements into a local folder
+RUN pip install --target=/app/pkgs --no-cache-dir -r requirements.txt && \
+    rm -rf /app/pkgs/nvidia*
+
+# AGGRESSIVE PRUNING (This reduces size significantly) remove: __pycache__, tests, documentation, and compiled object files
+RUN find /app/pkgs -name "__pycache__" -type d -exec rm -rf {} + && \
+    find /app/pkgs -name "*.pyc" -delete && \
+    find /app/pkgs -name "*.pyo" -delete && \
+    find /app/pkgs -name "*.dist-info" -type d -exec rm -rf {} + && \
+    rm -rf /app/pkgs/tensorflow/include && \
+    rm -rf /app/pkgs/numpy/tests && \
+    rm -rf /app/pkgs/pandas/tests
+
+###################################################################################
+#                             STAGE 2: Final Runtime                              #
+###################################################################################
+FROM python:3.11-slim AS runtime
+WORKDIR /app
+
+# Copy only the compiled extension and the installed packages
+COPY --from=builder /app/fast_math.so .                                  
+COPY --from=builder /app/pkgs /app/pkgs
+
+# Copy the rest of the app (obeying .dockerignore)
+COPY . .
+
+# Set Environment Variables
+ENV PYTHONPATH=/app/pkgs:.
+ENV TF_ENABLE_ONEDNN_OPTS=0
+ENV TF_CPP_MIN_LOG_LEVEL=2
+ENV PORT=8080
+
+CMD ["python3", "-m", "gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "0", "api:app"]
+</code>
+        </pre>
+    </div>
+
+    <div class="col-12 col-xxl-6 mx-xl-6">
+        <h6 class="text-white-50">GCP_Deployment_Script.sh</h6>
+        <pre class="p-2 border bg-secondary rounded overflow-auto" style="max-height: 365px;">
+<code>#!/bin/bash
+######################################################################################
+###                         GCP_Deployment_Script.sh                               ###
+###################################################################################### 
+
+# ---------------------------------------------------------------------------------- #
+# ---                      Check if gcloud is installed                          --- #
+# ---------------------------------------------------------------------------------- #
+if ! command -v gcloud >/dev/null 2>&1; then
+    echo "❌ ERROR: gcloud CLI not found. Please install it first."
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------------- #
+# ---                    Set and Load variables from .env                        --- #
+# ---------------------------------------------------------------------------------- #
+REGION="europe-west1"
+SERVICE_NAME="portfolio-app"
+if [ -f .env ]; 
+then
+    export $(grep -v '^#' .env | xargs)
+    echo "✅ Environment variables loaded from .env"
+else
+    echo "❌ ERROR: .env file not found."
+    exit 2
+fi
+
+# ---------------------------------------------------------------------------------- #
+# ---                            Run the deployment                              --- #
+# ---------------------------------------------------------------------------------- #
+echo "🚀 Deploying $SERVICE_NAME to Google Cloud Run ($REGION)..."
+gcloud run deploy $SERVICE_NAME \
+  --source . \
+  --region $REGION \
+  --allow-unauthenticated \
+  --set-env-vars "API_KEY=$API_KEY,API_TOKEN=$API_TOKEN,FLASK_ENV=PRODUCTION,GEMINI_API_KEY=$GEMINI_API_KEY"
+
+# Note: don't pass GOOGLE_APPLICATION_CREDENTIALS on GCP.
+# The code in api_utils.py will see it is missing and use the Service Identity.
+
+echo "✅ Deployment complete!"
+
+# ---------------------------------------------------------------------------------- #
+# ---                   Important steps before deployment                        --- #
+# ---------------------------------------------------------------------------------- #
+# 1. prepare requirements.txt
+# pipreqs . --force                                          < -- generate fresh clean requirements.txt
+# don't forget to add: gunicorn==23.0.0
+# replace: tensorflow==2.20.0 with tensorflow_cpu==2.20.0    < -- local docker
+# remove: tensorflow_cpu==2.20.0                             < -- Google Cloud Run
+# remove all spaces and quotes
+
+# 2. prepare Dockerfile
+
+# 3. prepare .dockerignore 
+
+# 4. build image
+# docker build -t portfolio-app .
+# docker images portfolio-app                                      < -- check size < 450MB
+# docker run --rm --env-file .env portfolio-app env | grep API_KEY < -- check .env variables
+
+# 5. test run Docker locally
+# docker run --rm -it -p 8080:8080 \
+#   --env-file .env \
+#   -v $(pwd)/serviceAccountKey.json:/app/serviceAccountKey.json \
+#   portfolio-app
+# docker stop <cont name> or Ctrl+C
+
+# 6. deployment
+# Replace `europe-west1` with preferred region
+# gcloud run deploy portfolio-app \
+#   --source . \
+#   --region europe-west1 \
+#   --allow-unauthenticated \
+#   --set-env-vars="API_KEY=abc, API_TOKEN=abc, ..."
+</code>
+        </pre>
+    </div>
+</div>
+
+<div class="mt-4 p-2 bg-gray border border-dark rounded d-flex align-items-center text-dark">
+    <i class="fas fa-info-circle fa-1x me-3"></i>
+    <span class="small">
+        <strong>DevOps Lifecycle:</strong> I focus on building optimized, <strong>OCI-compliant images</strong> that are portable across local Docker environments and production-grade <strong>Kubernetes</strong> clusters.
+<br>
+    </span>
+</div>

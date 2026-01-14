@@ -1,0 +1,234 @@
+<h2 id="cpp" class="fw-bold"><img src="static/assets/cpp.svg" alt="cpp" class="list-icon3 me-2">C / C++ Development</h2>
+<hr class="hrx"/>
+<p class="lead mt-3"></p>
+<h4 class="fw-bold text-dark">Test Project: C / Python Integration (The Bridge)</h4>
+<p class="lead"><i class="fas fa-link me-1 text-primary"></i>
+Leveraging the speed of C within the flexibility of Python via Python C Extensions and ctypes.
+</p>
+
+<div class="row">
+    <div class="col-12 col-xxl-6 mx-xl-6">
+        <h6 class="text-white-50">fast_math.c (Compiled into a Shared Object fast_math.so Python extension)</h6>
+        <pre class="p-2 border bg-secondary rounded overflow-auto" style = "max-height: 365px;">
+<code>/**********************************************************************************************
+* METHOD A: Python C-API logic, This function handles Python Objects directly.               *
+* Python and C live in two different worlds. Python is a "High-Level" language               *
+* (everything is a complex object with metadata), while C is a "Low-Level" language          *
+* (everything is raw bytes and memory addresses). This code is the "Translation Layer"       *
+* (Boilerplate) required for them to talk to each other.                                     *
+* COMPILE: gcc -shared -o fast_math.so -fPIC $(python3-config --includes) fast_math.c        *
+**********************************************************************************************/
+#define PY_SSIZE_T_CLEAN                                           // use Py_ssize_t (64-bit integers) for all lengths
+#include <Python.h>
+
+// 1. The Calculation Function
+static PyObject* method_fast_sum(PyObject* self, PyObject* args) { // PyObject* self: Points to the module itself
+    PyObject* list_obj;                                            // PyObject* args: This is a Python Tuple where arguments are all packed 
+    if (!PyArg_ParseTuple(args, "O", &list_obj)) {                 // PyArg_ParseTuple: unpack arguments
+        return NULL;                                               
+    }
+    if (!PyList_Check(list_obj)) {                                 // PyList_Check: this piece of memory is a Python List
+        PyErr_SetString(PyExc_TypeError, "Parameter must be a list.");
+        return NULL;
+    }
+    long sum = 0;
+    Py_ssize_t n = PyList_Size(list_obj);                          // PyList_Size: get the count
+    for (Py_ssize_t i = 0; i < n; i++) {
+        PyObject* item = PyList_GetItem(list_obj, i);              // PyList_GetItem: the item at index i (This is still a PyObject*)
+        sum += PyLong_AsLong(item);                                // PyLong_AsLong: converts the object into a raw 64-bit number 
+    }                                                              //                that C can actually add to a variable.
+    return PyLong_FromLong(sum);                                   // PyLong_FromLong: converts the number into a Python Object container
+}
+
+// 2. The Method Table. This table maps the Python name to the C function address.
+static PyMethodDef FastMathMethods[] = {                           // Python_Name, C_fce_Pointer, Type_of_Args, Docstring
+    {"fast_sum", method_fast_sum, METH_VARARGS, "Calculate sum of a list quickly."},  // METH_VARARGS - tuple of arguments
+    {NULL, NULL, 0, NULL}                                          // The "Sentinel" (VERY IMPORTANT) C arrays don't know their own length.
+};
+
+// 3. The Module Definition
+static struct PyModuleDef fastmathmodule = {
+    PyModuleDef_HEAD_INIT,                        // Standard internal header
+    "fast_math",                                  // The name used in: import fast_math
+    "C optimized math functions for Python",      // The module's description
+    -1,                                           // Global state flag (-1 = simple/stateless)
+    FastMathMethods                               // Points back to the Method Table
+};
+
+// 4. The Entry Point (PyInit_fast_math) This is what Python looks for during 'import fast_math'
+PyMODINIT_FUNC PyInit_fast_math(void) {           // The Naming Rule - it is fixed
+    return PyModule_Create(&fastmathmodule);      // Entry Point calls PyModule_Create()
+}
+</code>
+        </pre>
+    </div>
+    <div class="col-12 col-xxl-6 mx-xl-6">
+        <h6 class="text-white-50">Server-Side Python Code Snapshot: c_bridge.py & AJAX endpoint</h6>
+        <pre class="p-2 border bg-secondary rounded overflow-auto" style = "max-height: 365px;">
+<code>######################################################################################
+#  Method A (Python C-API) create a module that import like a normal Python library. #
+#                      Loading the compiled fast_math.so library                     #
+#                           calling the C function directly                          #
+######################################################################################  
+def c_bridge(count):
+  hw_header = get_hardware_info()
+  benchmark_output = "-" * 65 + "\n---    Performance Benchmark: C Extension vs. Pure Python     ---\n" + "-" * 65
+  try:
+      # import compiled module like a normal library
+      import fast_math
+      benchmark_output += "\nSUCCESS: fast_math module imported correctly!"
+      
+      # Create a large dataset (10 Million items)  count = 10_000_000 
+      data = list(range(count))
+      benchmark_output += f"\nDataset size: {count:,} integers\n"
+      
+      # --- TEST 1: C-EXTENSION ---
+      start_c = time.perf_counter()
+      result_c = fast_math.fast_sum(data) # fast_math - C module
+      end_c = time.perf_counter()         # fast_sum  - function in C module
+      time_c = end_c - start_c
+      
+      # --- TEST 2: PURE PYTHON LOOP ---
+      start_py = time.perf_counter()
+      sum_py = 0
+      for n in data:
+          sum_py += n
+      end_py = time.perf_counter()
+      time_py = end_py - start_py
+      
+      # --- TEST 3: PYTHON BUILT-IN SUM (Which is also written in C) ---
+      start_builtin = time.perf_counter()
+      sum_builtin = sum(data)
+      end_builtin = time.perf_counter()
+      time_builtin = end_builtin - start_builtin
+      
+      # Display Results
+      benchmark_output += f"\n{'Method':<25} | {'Result':<20} | {'Execution Time':<15}\n"
+      benchmark_output += "-" * 65
+      benchmark_output += f"\n{'C-Extension (Custom)':<25} | {result_c:<20} | {time_c:.6f} s"
+      benchmark_output += f"\n{'Python Manual Loop':<25} | {sum_py:<20} | {time_py:.6f} s"
+      benchmark_output += f"\n{'Python Built-in sum()':<25} | {sum_builtin:<20} | {time_builtin:.6f} s\n"
+      benchmark_output += "-" * 65
+      if time_c > 0:
+          speedup = time_py / time_c
+          benchmark_output += f"\nConclusion: C-Extension is ~ {speedup:.0f}x faster than a manual Python loop."
+  except ImportError as e:
+      benchmark_output += f"\nERROR: Could not find fast_math. {e}"
+  return f"{hw_header}\n{benchmark_output}"
+
+######################################################################################
+###       C / Python Integration and Performance Benchmark Test AJAX endpoint      ###
+###    run the Performance Benchmark C / Python - tests the sum of 1 million int   ###
+######################################################################################
+from c_bridge import c_bridge
+@app.route('/api/runCbridge', methods=['POST'])
+def runCbridge():
+    try:
+        benchmark_output,time_c,time_py = c_bridge(10_000_000) # Create a large dataset (10 Million items)
+        return jsonify({
+            "status": "success",
+            "result": benchmark_output,
+            "time_c": time_c,
+            "time_py": time_py
+        })
+    except Exception as e:
+        print(f"Performance Benchmark test failed: {e}")
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500</code>
+        </pre>
+    </div>
+
+</div>
+<div class="row justify-content-center">
+    <!-- Output Terminal -->
+    <div class="row justify-content-center">
+        <button id="CbridgeBtn" class="btn btn-primary btn-lg mx-3 text-lowercase" style="width: 300px;">
+            <i class="fas fa-play me-2"></i><span class="text-uppercase">Run</span> Performance Benchmark
+        </button>
+    </div>
+    <div class="results-container mt-4 px-3 py-2 border border-dark rounded bg-gray overflow-auto w-75">
+        <p id="CbridgeOutput1" class="text-dark m-0"><b>Performance Benchmark - Sum of 1,000,000 int numbers - TERMINAL OUTPUT:</b><br>
+        Click the "RUN Performance Benchmark" button above to execute the server-side Python function and see the performance results here.</p>
+        <div id="CbridgeOutput2" class="card border-0 d-none" style="width: 355px">
+            <div class="card-body ps-0 ms-0">
+                <div class="mb-1">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-bold">Pure Python Loop</span>
+                        <span id="CbridgePvalue" class="small text-cyan">0 ms</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-primary" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small fw-bold">C-Optimized Extension</span>
+                        <span id="CbridgeCvalue" class="small text-cyan">0 ms</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div id="CbridgeCpercent" class="progress-bar bg-primary" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h5 class="fw-bold mt-5">C / C++ Key Competencies:</h5>
+
+<div class="row mt-1">
+    <!-- Daily Workflow Column -->
+    <div class="col-12 col-xl-12 col-xxl-6 mb-4">
+        <div class="px-4 pt-3 border border-dark rounded shadow-sm bg-gray h-100">
+            <h5 class="fw-bold"><i class="fas fa-microchip me-2 text-dark"></i>Systems & Performance</h5>
+            <p class="text-muted small">High-speed processing and memory management.</p>
+            <ul class="list-unstyled">
+                <li class="mb-2"><i class="fas fa-caret-right me-2"></i> <strong>File I/O:</strong> High-performance
+                    stream processing</li>
+                <li class="mb-2"><i class="fas fa-caret-right me-2"></i> <strong>Memory:</strong> Pointers, references,
+                    and manual management</li>
+                <li class="mb-2"><i class="fas fa-caret-right me-2"></i> <strong>Efficiency:</strong> Fast procedural
+                    algorithms and recursion</li>
+                <li class="mb-2"><i class="fas fa-caret-right me-2"></i> <strong>Smart Pointers:</strong> modern memory
+                    safety (unique/shared)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Advanced/Bootcamp Skills Column -->
+    <div class="col-12 col-xl-12 col-xxl-6 mb-4">
+         <div class="px-4 pt-3 border border-dark rounded shadow-sm bg-gray h-100">
+            <h5 class="fw-bold mb-3"><i class="fas fa-cubes me-2 text-dark"></i>Modern OOP (C++17/20)</h5>
+            <div class="row">
+                <div class="col-sm-6">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Class Hierarchies</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Inheritance & Polymorphism</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Dynamic Binding</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Operator Overloading</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Constructors and Destructors</li>
+                    </ul>
+                </div>
+                <div class="col-sm-6">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Copy & Move Semantics</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> STL (Vectors, Maps, etc.)</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Exception Handling</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Range-based Loops</li>
+                        <!-- <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Smart pointers</li> -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-2 bg-gray border border-dark rounded shadow-sm text-dark">
+    <div class="px-3 py-2 d-flex align-items-center">
+        <i class="fas fa-bolt fa-2x me-3"></i>
+        <div>
+            <strong>Performance-First Mindset:</strong> I leverage C++ for tasks where execution speed is critical.
+            While I am proficient in modern Object-Oriented design and C++17/20 standards, I apply C-style
+            efficiency for direct system-level processing and high-throughput data operations.
+        </div>
+    </div>
+</div>

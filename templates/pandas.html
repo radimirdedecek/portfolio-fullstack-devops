@@ -1,0 +1,88 @@
+<h2 id="pandas" class="fw-bold"><img src="static/assets/pandas.svg" alt="Pandas" class="list-icon3 me-2">Pandas & Data Analysis</h2>
+<hr class="hrx"/>
+<p class="lead mt-3"></p>
+<h4 class="fw-bold text-dark">Test Project: Data Cleaning, Transformation, and Aggregation</h4>
+
+<p class="lead mt-3">
+    This section showcases the use of the **Pandas** library for data science essentials: loading raw data from the cloud cache, performing complex **data transformation**, and generating **meaningful analytical insights**.
+    The data for processing is downloaded in the <a href="#api" class="lead ax">REST API</a> section.
+</p>
+
+<p class="lead">
+    The analysis applies a well-known industry standard, the **Weighted Rating Formula (similar to IMDB's)**, to the raw TMDB scores. This demonstrates the ability to implement statistical models in Python to derive a more accurate and robust metric than a simple average score.
+</p>
+
+<h5 class="mt-4 fw-bold">Key Analytical Tasks:</h5>
+<ul class="list-unstyled">
+    <li><i class="fas fa-table me-2 text-primary"></i> **Data Loading:** Ingesting complex JSON data (from Firestore via Flask) directly into a Pandas DataFrame.</li>
+    <li><i class="fas fa-magic me-2 text-primary"></i> **Transformation:** Cleaning date fields, calculating the 75th percentile for vote counts, and applying the Weighted Score formula.</li>
+    <li><i class="fas fa-chart-line me-2 text-primary"></i> **Aggregation:** Grouping data by year and calculating mean scores to find trends.</li>
+    <li><i class="fas fa-sort-amount-up me-2 text-primary"></i> **Filtering & Sorting:** Identifying the top-rated movies based on the calculated Weighted Score.</li>
+</ul>
+
+<!-- Include Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<h5 class="mt-4 fw-bold">Interactive Demo: Run Pandas Analysis</h5>
+<div class="d-flex align-items-center mb-2">
+    <button id="runPandasAnalysisBtn" class="btn btn-primary btn-lg me-3" style="width: 300px;">
+        <i class="fas fa-play me-2"></i> Execute Pandas Analysis
+    </button>
+</div>
+
+<!-- NEW ELEMENT: This div will display the cache status (hit, miss, expired) -->
+<div id="pandasStatus" class="small text-muted my-2 p-2 rounded" style="min-height: 25px;">
+    <!-- Status message will be injected here by scripts.js -->
+</div>
+
+<!-- Area for the output -->
+<div id="pandasResults" class="results-container mt-1 p-3 border border-dark rounded bg-gray" style="max-width: 950px;">
+    <p class="text-center text-dark m-0">Click the RUN button above to process the TMDB data using Pandas on the backend.</p>
+</div>
+
+<h6 class="mt-4 text-white-50">Server-Side Code Snapshot (Python / Pandas Implementation):</h6>
+<pre class="p-2 border bg-secondary rounded overflow-auto" style = "max-height: 365px; max-width: 950px;">
+<code>######################################################################################
+###                              PANDAS endpoint                                   ###
+###   Retrieves TMDB data, processes it using Pandas, and returns summary stats.   ###
+###      Demonstrates data loading, cleaning, transformation, and aggregation.     ###
+###################################################################################### 
+@app.route('/api/get_pandas_data', methods=['GET'])
+def get_pandas_analysis():
+    raw_data, status_message = api_utils.load_movie_data(6, db_firestore_client)  # Load the raw data (Cache-or-Fetch logic)
+    df, C, m = api_utils.process_data_for_analysis(raw_data) # cleans, calculates C, m and adds the  weighted_score column
+    if df.empty:
+        return jsonify({"error": "Failed to load movie data for Pandas analysis.", "source_status": status_message}), 500
+    qualified_movies = df[df['vote_count'] >= m].copy() 
+    qualified_movies['weighted_score'] = qualified_movies.apply(lambda row: api_utils.weighted_rating(row, m, C), axis=1)
+    
+    # Top 5 Best Rated Qualified Movies (by Weighted Score)
+    top_movies_weighted = qualified_movies.sort_values(by='weighted_score', ascending=False).head(5)
+    
+    # Simple Summary Statistics
+    stats = {
+        'mean_score': f"{df['vote_average'].mean():.2f}",
+        'median_votes': f"{df['vote_count'].median():,.0f}",
+        'total_movies_analyzed': len(df),
+        'min_votes_for_qualification': f"{m:,.0f}"
+    }
+
+    # Aggregation by Year (Top 3 Recent Years with Highest Average Score)
+    yearly_avg = df.groupby('release_year')['vote_average'].mean().reset_index()
+    yearly_avg = yearly_avg.sort_values(by=['release_year', 'vote_average'], ascending=[False, False]).head(3)
+
+    # Convert DataFrames to JSON structures - Prepare Final JSON Response
+    top_movies_json = top_movies_weighted[[
+        'title', 'vote_average', 'vote_count', 'release_year', 'weighted_score'
+    ]].to_dict(orient='records')
+    
+    yearly_json = yearly_avg.to_dict(orient='records')
+    return jsonify({
+        "status": "SUCCESS",
+        "source_status": status_message,
+        "summary_stats": stats,
+        "top_movies_weighted": top_movies_json,
+        "top_years": yearly_json
+    })
+</code></pre>
+    

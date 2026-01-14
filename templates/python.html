@@ -1,0 +1,311 @@
+<h2 id="python" class="fw-bold"><img src="static/assets/python.svg" alt="Python" class="list-icon3 me-2">Python</h2>
+<hr class="hrx" />
+
+<p class="lead mt-3">
+    Python is the primary language used for backend development and data processing, focusing on clean, readable code
+    and robust error handling. Proficiency in object-oriented programming (OOP), efficient data structure handling (comprehensions), decorators, ... 
+    Python serves as the primary language for my data science and backend development stack. Python is utilized across all major components of this portfolio: managing the routing via Flask, processing external data in the API section, and performing complex calculations in the Pandas and future data science sections.
+</p>
+
+<!-- Performance Test Section -->
+<h5 class="mt-4 fw-bold">Interactive Demo: Python Performance (3 x Fibonacci) & Testing</h5>
+<p class="small ">This demo utilizes the server-side Python environment (Flask) to showcase two critical aspects of
+    Python development:
+    **Performance Optimization** and **Code Quality**.
+    The first test compares the execution time of three Fibonacci functions (slow recursive, memoized recursive, and
+    iterative loop) to demonstrate optimization needs and the practical use of advanced language features like a
+    **memoization decorator** to drastically improve performance.
+    The second test allows you to run a **pytest** unit test suite against the backend logic, confirming
+    proficiency in writing and executing tests to ensure code reliability and correctness.
+</p>
+
+<div class="row">
+    <div class="col-12 col-xxl-6 mx-xl-6">
+        <h6 class="text-white-50 mt-3">Server-Side Python Code Snapshot: api.py</h6>
+        <pre class="p-2 border bg-secondary rounded overflow-auto" style="max-height: 365px;">
+            <code>
+######################################################################################
+#                      Python Performance Test (3 x Fibonacci)                       #
+######################################################################################
+from functools import wraps
+from time import time
+      
+N_VALUE = 13 # target Fibonacci number Fn where n = 33
+
+# --- Helper Function ---
+def duration(dur): 
+    """Formats time duration into [s ms µs] string."""
+    s  = int(dur)
+    ms = int((dur-s) * 1000)
+    mu = int((dur-s-ms/1000) * 1000 * 1000)
+    return f"<span style='color: #00ffff;'>{s:2}s {ms:3}ms {mu:3}μs</span>"
+
+# --- Decorators --- 
+def accelerator(func):
+    """Decorator that caches a function's results."""
+    cache = {}
+    @wraps(func)
+    def wrapper(*args):
+        # 1. Check if the result is already known
+        n_arg = args[0]
+        if n_arg in cache:
+            return cache[n_arg], None, None # Return cached result instantly
+        # 2. Calculate the result if not cached
+        result, run_time, out_str = func(*args)
+        # 3. Store the result before returning
+        cache[n_arg] = result
+        return result, run_time, out_str
+    # 4. EXPOSE THE CACHE CLEAR FUNCTION
+    def clear_cache():
+        """Clears the cache dictionary."""
+        nonlocal cache
+        cache = {}
+    wrapper.clear_cache = clear_cache
+    return wrapper
+
+def timer(func):
+    """Decorator that measures the duration of a function."""
+    # Initialize a flag on the function object to track if we are in the timing context
+    func._timing_context = {'in_progress': False}     
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Check if timing is already in progress for this function
+        if func._timing_context['in_progress']:
+            return func(*args, **kwargs)
+        else:
+            func._timing_context['in_progress'] = True
+            start = time()
+            try:
+                # Execute the function (this will trigger all the recursive calls)
+                result_tuple = func(*args, **kwargs)
+            finally:
+                # Ensure the flag is reset even if the function raises an error
+                func._timing_context['in_progress'] = False
+            # Print the total time only once
+            result = result_tuple[0]
+            run_time = time() - start
+            # comparison_time_d1 = args[1]
+            str1= " -> " + "<span style='color: #00ff00;'>   base time for speed comparison</span>"
+            if args[1]>0:
+                str1= f" -> <span style='color: #00ff00;'>{round(args[1]/run_time):8,} times faster calculation</span>"
+            out_str = f"<b>Finished: <span style='color: #ffff00;'>{func.__name__}</span></b>({args[0]}) = {result}, run_time: {duration(run_time)}{str1}"
+            return result, run_time, out_str
+    return wrapper
+
+@timer 
+def slow_fibonacci(n, d1): # This simulates a slow, expensive calculation without accelerator
+    if n &lt; 0:
+        return 0, None, None
+    if n &lt;= 1:
+        return n, None, None
+    return slow_fibonacci(n - 1, d1)[0] + slow_fibonacci(n - 2, d1)[0], None, None
+
+@accelerator
+@timer 
+def fast_fibonacci(n, d1): # This simulates a slow, expensive calculation with accelerator
+    if n &lt; 0:
+        return 0, None, None
+    if n &lt;= 1:
+        return n, None, None
+    return fast_fibonacci(n - 1, d1)[0] + fast_fibonacci(n - 2, d1)[0], None, None
+
+@timer    
+def loop_fibonacci(n,d1): # This simulates a loop calculation without accelerator
+    f2=0
+    f1=1
+    if n&lt;1:
+        return 0, None, None
+    for _ in range(n-1):
+        f1 = f2 + f1
+        f2 = f1 - f2
+    return f1, None, None
+
+# ####################################################### TESTING AREA ####################################################### # 
+# import re
+# N_VALUE = 1
+# fib_result1, total_time1, str1 = slow_fibonacci(N_VALUE, 0)           # slow recursive fibonacci calculation without accelerator
+# fib_result2, total_time2, str2 = fast_fibonacci(N_VALUE, total_time1) # slow recursive fibonacci calculation with accelerator
+# fib_result3, total_time2, str3 = loop_fibonacci(N_VALUE, total_time1) # loop fibonacci calculation 
+# print(f"{re.sub(r"&lt;.*?>", "", str1)}\n{re.sub(r"&lt;.*?>", "", str2)}\n{re.sub(r"&lt;.*?>", "", str3)}")
+            </code>
+        </pre>
+        <div class="row justify-content-center text-center">
+            <label for="fibonacciNInput" class="form-label small mb-2">
+                Fibonacci number Fn, enter n (e.g., 20 or 35 for slower results):
+            </label>
+             <div class="d-flex gap-4 flex-wrap justify-content-center align-items-stretch">
+                <div class="custom-slider-wrapper d-flex align-items-center px-3 py-1"
+                    style="max-width: 280px; border-radius: 0.5rem;">
+                    <input type="range" id="fibonacciNInput" min="10" max="44" value="24"
+                        class="custom-range-slider me-2">
+                    <output id="sliderValue" class="fw-bold text-white">24</output>
+                </div>
+                <button id="runFibonacciTestBtn" class="btn btn-primary btn-lg text-lowercase" style="min-width: 208px;">
+                    <i class="fas fa-play me-2"></i><span class="text-uppercase">Run</span> fibonacci.py
+                </button>
+            </div>
+        </div>
+        <script>
+            const slider = document.getElementById("fibonacciNInput");
+            const output = document.getElementById("sliderValue");
+            slider.oninput = function () { output.innerHTML = this.value; }
+        </script>
+    </div>
+
+    <div class="col-12 col-xxl-6 mx-xl-6">
+        <h6 class="text-white-50 mt-3">Server-Side Python Code Snapshot: api_test.py</h6>
+        <pre class="p-2 border bg-secondary rounded overflow-auto" style="max-height: 365px;">
+            <code>
+######################################################################################
+#         Python api_test.py -  automated testing using the pytest framework         #
+######################################################################################
+import pytest
+import time
+from fibonacci import fast_fibonacci, slow_fibonacci, loop_fibonacci 
+
+# --- Constants for Tests ---
+TEST_N = 10 
+EXPECTED_RESULT = 55 # F(10) is 55
+N_PERF = 30 # Used for caching performance test
+
+# --- Fixture to ensure cache is clear before performance tests ---
+@pytest.fixture(autouse=True)
+def clear_fib_cache():
+    """Clears the cache for fast_fibonacci before running tests."""
+    try:
+        # Note: We rely on the decorator adding the clear_cache method
+        fast_fibonacci.clear_cache()
+    except AttributeError:
+        # Pass silently if the decorator structure is modified or cache isn't available
+        pass
+
+# --- Correctness Tests ---
+def test_01_slow_recursive_correctness():
+    """Tests the Naive Recursive function (O(2^n))."""
+    # Functions return (result, time, string). We only care about the result [0].
+    result, _, _ = slow_fibonacci(TEST_N, 0)
+    assert result == EXPECTED_RESULT, f"Slow recursive failed: Expected {EXPECTED_RESULT}, got {result}"
+
+def test_02_fast_recursive_correctness():
+    """Tests the Memoized Recursive function (O(n))."""
+    result, _, _ = fast_fibonacci(TEST_N, 0)
+    assert result == EXPECTED_RESULT, f"Fast recursive failed: Expected {EXPECTED_RESULT}, got {result}"
+
+def test_03_loop_iterative_correctness():
+    """Tests the Iterative Loop function (O(n))."""
+    result, _, _ = loop_fibonacci(TEST_N, 0)
+    assert result == EXPECTED_RESULT, f"Loop iterative failed: Expected {EXPECTED_RESULT}, got {result}"
+
+# --- Performance Test ---
+def test_04_fast_recursive_performance():
+    """
+    Tests if the fast_fibonacci function is significantly faster on a second run 
+    (proving the O(1) cache hit).
+    """
+    # 1. First run (populates cache)
+    start_time_1 = time.time()
+    fast_fibonacci(N_PERF, 0)
+    duration_1 = time.time() - start_time_1
+    
+    # 2. Second run (cache hit)
+    start_time_2 = time.time()
+    fast_fibonacci(N_PERF, 0)
+    duration_2 = time.time() - start_time_2
+    
+    # Assert the second run is much faster (e.g., at least 10x faster)
+    assert duration_2 &lt; duration_1 * 0.1 + 0.001, \
+        f"Cache failed: Second run ({duration_2:.6f}s) was not significantly faster than first ({duration_1:.6f}s)."
+
+# --- Edge Case / Validation Test ---
+# We use parametrize to run the same test logic with different inputs/expected outcomes
+@pytest.mark.parametrize("n_input, expected_result", [
+    (-2, 0),   # F(-2) should be 0
+    (0, 0),    # F(0)  should be 0
+    (1, 1),    # F(1)  should be 1
+    (2, 1),    # F(2)  should be 1
+    (13, 233)  # F(13) should be 233
+])
+def test_05_boundary_correctness(n_input, expected_result):
+    """Test boundary and small inputs for loop function."""
+    result, _, _ = loop_fibonacci(n_input, 0)
+    assert result == expected_result, f"F({n_input}) failed. Expected {expected_result}, got {result}"
+
+def test_06_negative_input_loop():
+    """Tests that the improved loop_fibonacci correctly returns 0 for n &lt; 1."""
+    # Based on your fix: If n &lt; 1, the function should return 0
+    result, _, _ = loop_fibonacci(-5, 0)
+    assert result == 0, "Loop function did not handle negative input correctly (expected 0)."
+
+#  command line:
+#  pytest test_fibonacci.py 
+            </code>
+        </pre>
+        <div class="row justify-content-center">
+            <label class="form-label small text-center">Automated testing using the pytest framework:</label>
+            <button id="runFibonacciPytestBtn" class="btn btn-primary btn-lg mx-3 text-lowercase"
+                style="width: 300px;">
+                <i class="fas fa-play me-2"></i><span class="text-uppercase">Run</span> test_fibonacci.py
+            </button>
+        </div>
+    </div>
+</div>
+<div class="row justify-content-center">
+    <!-- Output Terminal -->
+    <div id="fibonacciOutput" class="results-container mt-4 px-3 py-2 border border-dark rounded bg-gray overflow-auto w-75 text-dark"
+        style="height: 190px; white-space: pre-wrap; font-family: monospace;"><b>TERMINAL OUTPUT:</b><br>
+        Click the "RUN fibonacci.py" button above to execute the server-side Python function and see the performance
+        results here.
+        or
+        Click the "RUN test_fibonacci.py" button above to execute the server-side Pytest framework and see the test
+        results here.
+    </div>
+</div>
+
+<!-- Refined Python Library Index -->
+<div class="mt-5">
+    <h5 class="fw-bold mb-2">
+        <i class="fas fa-layer-group me-2 text-dark"></i>Technical Toolkit: Python Ecosystem
+    </h5>
+    <p class="text-dark small mb-2">A comprehensive index of libraries and frameworks utilized across my web development, automation, and data science projects.</p>
+    <div class="row g-4">
+        <!-- Automation & Web Scraping -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 border-dark shadow-sm bg-gray">
+                <div class="card-body">
+                    <h6 class="fw-bold text-uppercase small mb-3">Automation & Scraping</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-robot me-2"></i>Selenium WebDriver</span></li>
+                        <li class="mb-2"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-search me-2"></i>Beautiful Soup 4</span></li>
+                        <li class="mb-0"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-exchange-alt me-2"></i>Requests API</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Data Visualization & Analysis -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 border-dark shadow-sm bg-gray">
+                <div class="card-body">
+                    <h6 class="fw-bold text-uppercase small mb-3">Data Science & Viz</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-chart-line me-2"></i>Plotly / Matplotlib</span></li>
+                        <li class="mb-2"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-chart-bar me-2"></i>Seaborn</span></li>
+                        <li class="mb-0"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-brain me-2"></i>Scikit-learn</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Backend & Infrastructure -->
+        <div class="col-12 col-lg-4">
+            <div class="card h-100 border-dark shadow-sm bg-gray">
+                <div class="card-body">
+                    <h6 class="fw-bold text-uppercase small mb-3">Backend & Database</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-database me-2"></i>SQLAlchemy</span></li>
+                        <li class="mb-2"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-check-square me-2"></i>WTForms</span></li>
+                        <li class="mb-0"><span class="badge bg-lighter border border-dark2 w-100 p-2 text-start"><i class="fas fa-vial me-2"></i>Pytest</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

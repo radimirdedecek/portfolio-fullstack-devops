@@ -1,0 +1,181 @@
+<h2 id="scikitlearn" class="fw-bold"><img src="static/assets/scikitlearn.svg" alt="Scikit-learn" class="list-icon3 me-2">SCIKIT-LEARN & Predictive Modeling</h2>
+<hr class="hrx"/>
+<p class="lead mt-3"></p>
+<h4 class="fw-bold text-dark">Test Project: Regression Analysis and Model Evaluation</h4>
+
+<p class="lead mt-3">
+This section demonstrates essential machine learning workflow steps using scikit-learn, a leading library for classical ML algorithms.
+ It use data from TMDB (top 120 movies) to train a model to predict a movie's weighted score. 
+ The processed data is downloaded in the <a href="#api" class="lead ax">REST API</a> section and cleaned in the <a href="#pandas" class="lead ax">PANDAS</a> section.
+</p>
+
+<h5 class="fw-bold mt-4">Key ML Concepts Demonstrated:</h5>
+<ul class="list-unstyled">
+    <li><i class="fas fa-filter me-2 text-primary"></i> **Feature Engineering:** Using features like `vote_count` and `popularity` to predict the target variable.</li>
+    <li><i class="fas fa-magic me-2 text-primary"></i> **Train/Test Split:** Dividing data for training and unbiased model evaluation.</li>
+    <li><i class="fas fa-chart-area me-2 text-primary"></i> **Linear Regression:** Training a simple model to establish linear relationships.</li>
+    <li><i class="fas fa-medal me-2 text-primary"></i> **Model Evaluation:** Calculating key metrics like the $R^2$ Score and Mean Squared Error (MSE).</li>
+    <li><i class="fas fa-crosshairs me-2 text-primary"></i> **Cross-Validation:** Ensuring model robustness across different subsets of the data.</li>
+</ul>
+
+<!-- Include Plotly library -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<h5 class="fw-bold mt-8 font-semibold text-gray-700">Interactive Demo: Run Scikit-learn Regression</h5>
+
+<div class="d-flex gap-4 flex-wrap py-2">
+    <!-- RUN BUTTON -->
+    <button id="runSklearnAnalysisBtn" class="btn btn-primary btn-lg flex-grow-1" style="min-width: 230px; max-width: 400px;">
+        <i class="fas fa-play me-2"></i> Run Predictive Model
+    </button>
+    <!-- MODEL SELECTOR DROPDOWN -->
+    <div class="dropdown flex-grow-1" style="min-width: 230px; max-width: 400px;"> <!-- Ensures stretch and min width -->
+      <button class="btn btn-primary btn-lg dropdown-toggle w-100" type="button"
+        id="sklearnModelDropdown"
+        data-bs-toggle="dropdown" 
+        aria-expanded="false">
+        SELECT MODEL: <span id="selectedModelText">LINEAR REGRESSION</span>
+      </button>
+      <ul class="dropdown-menu bg-gray-200 border-gray-700 w-100" aria-labelledby="sklearnModelDropdown">
+        <li>
+          <a class="dropdown-item text-gray-800" href="#" data-model="linear">Linear Regression</a>
+        </li>
+        <li>
+          <a class="dropdown-item text-gray-800" href="#" data-model="tree">Random Forest Regressor</a>
+        </li>
+      </ul>
+    </div>
+</div>
+
+<div id="sklearnStatus" class="small my-1 p-2 border-dark rounded" style="min-height: 25px;">
+    <!-- Status message will be injected here by scripts.js -->
+</div>
+<!-- Analytical Conclusion: Linear Regression Model
+The linear regression model, trained to predict movie score based on vote count, achieved a strong R² score of 0.8051 on the test set. This indicates that the model explains approximately 80.51% of the variability in the movie scores.
+However, the Cross-Validation (CV) R² score is -0.9204. This highly negative CV score directly contradicts the strong test set performance, indicating a severe case of overfitting. The model is stable on the data it was trained on but fails completely to generalize when exposed to different, unseen subsets of the data (the cross-validation folds).
+
+The resulting non-symmetric residuals distribution (centered near zero but with a long tail) is further evidence of this poor generalization and underlying systematic errors, which is expected given the small, non-linear, and inherently complex nature of human-rated movie data. -->
+
+
+<!-- Area for the output -->
+<div id="sklearnResults" class="results-container mt-1 p-3 border border-dark rounded bg-gray" style="max-width: 950px;">
+    <p class="text-center text-dark m-0">Click the button to train and evaluate the regression model on the TMDB data.</p>
+    <!-- Model metrics, coefficients, and plots will be inserted here -->
+    <div id="sklearn3DPlot"></div>
+    <div id="plotGenerationStatus"></div>
+</div>
+
+
+<h6 class="mt-4 text-white-50">Server-Side Code Snapshot (Python / Scikit-learn Implementation):</h6>
+<pre class="p-2 border bg-secondary rounded overflow-auto" style = "max-height: 365px; max-width: 950px;">
+<code>######################################################################################
+###                       SCIKIT-LEARN ANALYSIS ENDPOINT 2                         ###
+###      Generates data for a 3D surface plot to visualize the Weighted Score      ###
+###                   function based on Raw Score and Vote Count.                  ###
+######################################################################################
+@app.route('/api/get_sklearn_plot_data', methods=['GET'])
+def get_sklearn_plot_data():
+    raw_data, status_message = api_utils.load_movie_data(6, db_firestore_client)
+    
+    if not raw_data or not raw_data.get('results'):
+        return jsonify({"error": f"Failed to load data for Plotly. Status: {status_message}"}), 500
+    
+    try:
+        df = pd.DataFrame(raw_data['results'])
+        
+        # Calculate C and m from the current dataset (as in the analysis)
+        df['vote_count'] = pd.to_numeric(df['vote_count'], errors='coerce')
+        df['vote_average'] = pd.to_numeric(df['vote_average'], errors='coerce')
+        df.dropna(subset=['vote_count', 'vote_average'], inplace=True)
+        df = df[df['vote_count'] > 0]
+        
+        C = df['vote_average'].mean()
+        m = df['vote_count'].quantile(api_utils.TMDB_QUANTILE) 
+        
+        # 1. Define the range for the two input axes (X and Y)
+        # X-axis: Votes (v). Range from 0 to 5 times the min qualified votes (m).
+        v_min = 0
+        v_max = int(m * 5) + 1 
+        votes = np.linspace(v_min, v_max, 50) # 50 points for smoothness
+        
+        # Y-axis: Raw Score (R). Range from 5.0 to 10.0 (TMDB range).
+        R_min = 5.0
+        R_max = 10.0
+        raw_scores = np.linspace(R_min, R_max, 20) # 20 points
+        
+        # 2. Create the meshgrid for all combinations
+        V, R = np.meshgrid(votes, raw_scores)
+        
+        # 3. Calculate the Z-axis (Weighted Score) for every point in the grid
+        # The formula: (v / (v + m)) * R + (m / (v + m)) * C
+        Z = (V / (V + m)) * R + (m / (V + m)) * C
+
+        # 4. Prepare the data for Plotly (must be converted to lists)
+        plot_data = {
+            "x": V.tolist(),        # Votes (x-axis)
+            "y": R.tolist(),        # Raw Score (y-axis)
+            "z": Z.tolist(),        # Weighted Score (z-axis)
+            "C_constant": f"{C:.3f}",
+            "m_constant": f"{m:.0f}"
+        }
+        return jsonify(plot_data)
+    except Exception as e:
+        print(f"Plotly Data Generation Failed: {e}")
+        return jsonify({"error": f"Internal Server Error during Plotly data generation: {str(e)}"}), 500
+
+# ---------------------------------------------------------------------------------- #      
+# ---                        PANDAS & SCIKIT-LEARN                               --- #
+# ---            Formula: W = (v / (v + m)) * R + (m / (v + m)) * C              --- #
+# ---------------------------------------------------------------------------------- #
+def weighted_rating(row, m, C):                   # m = minimum votes required (75th percentile of vote_count)
+    v = row['vote_count']                         # v = number of votes for the movie (vote_count)
+    R = row['vote_average']                       # R = average for the movie (vote_average)
+    return (v / (v + m)) * R + (m / (v + m)) * C  # C = mean vote across the whole report (mean of vote_average)
+    
+# ---------------------------------------------------------------------------------- #      
+# ---                     PANDAS/SKLEARN UTILITY FUNCTION                       ---- #
+# --- Processes the raw TMDB movie data (list of dicts) into a Pandas DataFrame, --- #
+# --- cleans it, calculates the weighted score formula constants (C and m),      --- #
+# --- and adds the final weighted_score column.                                  --- #
+# --- Returns tuple: (pd.DataFrame, float C, int m)                              --- #
+# ---------------------------------------------------------------------------------- #
+def process_data_for_analysis(raw_data):
+    if not raw_data or not raw_data.get('results'):
+        return pd.DataFrame(), 0.0, 0
+    df = pd.DataFrame(raw_data['results'])                              # Convert list of dicts to DataFrame  
+    
+    # Convert necessary columns to appropriate types and handle NaNs    # Cleaning and Standardization
+    df = df.dropna(subset=['vote_average', 'vote_count', 'popularity', 'release_date'])
+    df['vote_count'] = df['vote_count'].astype(int)                     # Convert types
+    df['vote_average'] = df['vote_average'].astype(float)
+    
+    # Extract year
+    df['release_year'] = pd.to_datetime(df['release_date'], errors='coerce').dt.year
+    df.dropna(subset=['release_year'], inplace=True)
+    df['release_year'] = df['release_year'].astype(int)
+
+    # Use drop_duplicates with subset='id' to prevent the 'unhashable type: list' error    
+    df.drop_duplicates(subset=['id'], keep='first', inplace=True)
+    
+    # Remove rows where key metrics are missing or zero (not a valid movie rating)         
+    df = df[
+        (df['vote_count'] > 0) & 
+        (df['vote_average'] > 0) & 
+        (df['popularity'].notna()) &
+        (df['vote_average'].notna())
+    ].copy()
+    if len(df) == 0:                                                     # IMDB Weighted Rating Formula Implementation
+        return df, 0.0, 0                                                # Formula: W = (v / (v + m)) * R + (m / (v + m)) * C
+    C = df['vote_average'].mean()                                        # C = mean vote across the whole report (mean of vote_average)
+    m = df['vote_count'].quantile(TMDB_QUANTILE)                         # m = minimum votes required (75th percentile of vote_count)
+    m = max(TMDB_MIN_VOTES, int(m))   # Ensure m is an integer and at least TMDB_MIN_VOTES = 50     
+    # Apply the function to create the new column                        # R = average for the movie (vote_average)
+    df['weighted_score'] = df.apply(weighted_rating, axis=1, m=m, C=C)   # v = number of votes for the movie (vote_count)
+    
+    # Select final columns for clarity and relevance
+    df = df[['title', 'vote_average', 'vote_count', 'popularity', 'release_date', 'release_year', 'weighted_score']].copy()
+    return df, C, m
+</code></pre>
+
+
+

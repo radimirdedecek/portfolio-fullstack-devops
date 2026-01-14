@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Radimir Dedecek - Portfolio</title>
+  <!-- <link rel="icon" type="image/x-icon" href="static/assets/favicon.ico"/> -->
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/favicon.ico') }}" />
+  <!-- Font Awesome icons (free version)-->
+  <!-- <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script> -->
+  <!-- This switch fontawesome to the CSS-only version usually resolves 99% of "missing icon" bugs on iOS devices!  11.1.2026 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" xintegrity="sha512-SzlrxWUlpfuzQ+pcUCosxcglQRNAq/DZjVsC0lE40xsADsfeQoEypE+enwcOiGjk/bSuGGKHEyjSoQ1zVisanQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
+    rel="stylesheet" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <!-- <link href="static/css/styles.css" rel="stylesheet" /> -->
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
+  <!-- bootstrap scrollspy replacement -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+</head>
+
+<body id="page-top">
+  <!-- header -->
+  <header id="header"
+    class="text-white bg-primary mx-0 mx-md-3 mx-lg-4 mx-xl-5 my-1 flex-shrink-0 shadow header-scrollspy">
+    <div id="mainNav1" class="d-flex">
+      <div class="ps-3 flex-grow-1 d-none d-lg-block">Flask ENV: <span>{{index_html_info|lower}}</span>
+      </div>
+      <div class="ps-3 flex-grow-1 d-none d-md-block">WEB APP testing page {{version}}
+        <span id="myText"></span>
+      </div>
+      <div class="ps-3 flex-grow-1 d-md-none">
+        <a class="ps-2 pe-3 nav-link dropdown-toggle" id="navbarDropdown" href="#" data-bs-toggle="dropdown"
+          aria-expanded="false">Technology Stack</a>
+        <!-- list-group-flush -->
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" data-bs-theme="dark">
+          {% for section_id in content_sections %}
+          <li>
+            <a class="dropdown-item" href="#{{section_id}}" data-bs-dismiss="dropdown"
+              onclick="document.getElementById('{{section_id}}').scrollIntoView({behavior: 'smooth'})">
+              <img src="{{ url_for('static', filename='assets/' ~ section_id ~ '.svg') }}" alt="{{section_id}}"
+                class="me-2 list-icon">{{section_id|capitalize}} 
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <a class="px-2 mylink" href="#itop">Overview</a>
+      <a class="px-2 mylink" href="#iabout">About</a>
+      <a class="px-2 mylink" href="#icontact">Contact</a>
+      <a class="ps-2 pe-3 nav-link dropdown-toggle" id="navbarDropdown" href="#" data-bs-toggle="dropdown"
+        aria-expanded="false">EN</a>
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" data-bs-theme="dark">
+        <li><a class="dropdown-item" href="javascript:void(0)">EN</a></li>
+        <li><a class="dropdown-item disabled" href="javascript:void(0)">DE (unfinished)</a></li>
+        <li><a class="dropdown-item disabled" href="javascript:void(0)">CZ (unfinished)</a></li>
+      </ul>
+      <!-- <a class="ps-2 pe-3" href="#iEN">EN</a> -->
+    </div>
+  </header>
+  <main id="main-content" class='dynamic-height'>
+    <div class="container-fluid h-fill-parent d-flex flex-column">
+      <div class="row overflow-hidden py-2">
+        <!-- LEFT COLUMN -->
+        <div class="col-12 col-md-3 col-lg-2 h-fill-parent p-0 m-0 border-end d-none d-md-block">
+          <div class="d-flex flex-column h-fill-parent bg-transparent border-end">
+            <div id="mainNav2" class="mybox overflow-auto px-3 ms-md-3 ms-lg-4 ms-xl-5 mb-4">
+              <img id="logo-header" src="static/assets/favicon1.png" alt="Logo"
+                class="mx-auto my-1 my-lg-2 my-xl-3 d-block logo-animated" style="width: 80px;">
+              <h5 class="fw-bold text-center">Technology Stack</h5>
+              <!-- list-group-flush -->
+              <ul class="list-group list-group-xx p-0 m-0">
+                {% for section_id in content_sections %}
+                <li class="list-group-item ">
+                  <a class="mylink d-block w-100 px-0 py-1 text-decoration-none" href="#{{section_id}}">
+                    <img src="{{ url_for('static', filename='assets/' ~ section_id ~ '.svg') }}" alt="{{section_id}}"
+                      class="list-icon">
+                    {% if section_id == "api" %}
+                    REST API
+                    {% elif section_id == "cpp" %}
+                    C / C++
+                    {% elif section_id == "docker" %}
+                    Docker & K8s
+                    {% else %}
+                    {{section_id|capitalize}}
+                    {% endif %}
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            <!-- BOTTOM SECTION -->
+            <div class="mt-auto p-2 pb-0 bg-transparent">
+              {% if index_html_info != "PRODUCTION" %}
+              <div class="alert bg-danger text-white small mb-1 p-1">
+                <strong>Flask ENV: (see .env file)</strong><br>
+                <small>{{index_html_info}}</small>
+              </div>
+              {% endif %}
+              <!-- <div class="mb-0 small text-muted text-center bg-transparent hide-on-short-screen"> -->
+              <div class="card mx-3 my-0 py-1 hide-on-short-screen">
+                <div class="card-body py-0 text-center">
+                  <i class="fas fa-envelope py-0 text-white"></i>
+                  <div class="py-0 small"><a id="mailto" href="mailto:radimir.dedecek@gmail.com" class="stretched-link"
+                      target="_newtab">radimir.dedecek@gmail.com</a></div>
+                </div>
+              </div>
+            </div>
+            
+            </div>
+        </div>
+        <!-- RIGHT COLUMN -->
+        <div class="col-12 col-md-9 col-lg-10 h-fill-parent p-0 m-0">
+          <div class="d-flex flex-column h-fill-parent bg-transparent ">
+            <div id="scroll-container" class="mybox overflow-auto me-0 me-md-3 me-lg-4 me-xl-5 px-3">
+              <!------------------------------------ Overview -------------------------------------------------------------------->
+              <h2 id="itop" class="fw-bold"><i class="fas fa-eye me-2 text-dark"></i>Professional Overview</h2>
+              <hr class="hrx" />
+              <p class="lead mt-3">
+                I am a <strong>Full-Stack Developer</strong> specializing in high-performance backends and scalable cloud infrastructure.
+                This single-page application serves as my interactive portfolio, built to demonstrate hands-on competence across my
+                primary technology stack, from modern front-end design to robust back-end development principles. 
+                 A hybrid architecture is implemented here, that uses local K8s-optimized TensorFlow models in development and fails over to Cloud Vision APIs in serverless production to optimize latency and cost.
+              </p>
+              <!-- SECTION 1: OVERVIEW CATEGORIES -->
+              <div class="row mt-4">
+                <!-- Category 1: Languages & Core (The Foundation) -->
+                <div class="col-12 col-xl-4 mb-3">
+                  <div class="p-3 border rounded border-dark h-100 bg-gray">
+                    <h6 class="fw-bold text-white border-bottom border-dark pb-2">
+                      <i class="fas fa-code-branch me-2 text-dark"></i>Languages & Core
+                    </h6>
+                    <ul class="list-unstyled mb-0 small text-dark">
+                      <li class="mb-1"><strong class="text-white">Python:</strong> Flask, PEP 8, Scripting</li>
+                      <li class="mb-1"><strong class="text-white">C / C++:</strong> Performance, Modern Standards</li>
+                      <li class="mb-1"><strong class="text-white">JavaScript:</strong> ES6+, DOM, Async/Fetch</li>
+                      <li class="mb-1"><strong class="text-white">SQL:</strong> Relational Database Design</li>
+                      <li class="mb-1"><strong class="text-white">Bash:</strong> Shell Scripting & Automation</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Category 2: Web & Data (The Application) -->
+                <div class="col-12 col-xl-4 mb-3">
+                  <div class="p-3 border rounded border-dark h-100 bg-gray">
+                    <h6 class="fw-bold text-white border-bottom border-dark pb-2">
+                      <i class="fas fa-laptop-code me-2 text-dark"></i>Web & Data
+                    </h6>
+                    <ul class="list-unstyled mb-0 small text-dark">
+                      <li class="mb-1"><strong class="text-white">Frameworks:</strong> Flask, Jinja2, Bootstrap 5</li>
+                      <li class="mb-1"><strong class="text-white">UI/UX:</strong> Responsive & Adaptive Design</li>
+                      <li class="mb-1"><strong class="text-white">AI/ML:</strong> TensorFlow, Keras, Scikit-learn</li>
+                      <li class="mb-1"><strong class="text-white">Analysis:</strong> NumPy, Pandas, Matplotlib</li>
+                      <li class="mb-1"><strong class="text-white">APIs:</strong> REST, JSON Serialization</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Category 3: DevOps & Systems (The Environment) -->
+                <div class="col-12 col-xl-4 mb-3">
+                  <div class="p-3 border rounded border-dark h-100 bg-gray">
+                    <h6 class="fw-bold text-white border-bottom border-dark pb-2">
+                      <i class="fas fa-server me-2 text-dark"></i>DevOps & Systems
+                    </h6>
+                    <ul class="list-unstyled mb-0 small text-dark">
+                      <li class="mb-1"><strong class="text-white">Orchestration:</strong> Docker, Kubernetes</li>
+                      <li class="mb-1"><strong class="text-white">Cloud:</strong> Google Cloud Platform (GCP)</li>
+                      <li class="mb-1"><strong class="text-white">VCS:</strong> Git (Branching, PRs, Workflows)</li>
+                      <li class="mb-1"><strong class="text-white">OS:</strong> Linux (Ubuntu/Debian) Admin</li>
+                      <li class="mb-1"><strong class="text-white">Environment:</strong> Virtualenv, PIP, OCI Images</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3 ps-0 bg-dark text-white rounded small shadow-sm">
+                <i class="fas fa-terminal me-2 text-success"></i>
+                I write clean, PEP 8 compliant code and leverage <strong>Linux</strong> environments for all development
+                and
+                deployment tasks.
+              </div>
+
+              <h5 class="mb-3 fw-bold">What You Will Find Here:</h5>
+              <ul class="list-unstyled">
+                <li><i class="fas fa-desktop me-2 text-primary"></i> **Core Technologies:** Practical examples and
+                  explanations of my skills in **Python**, **Bootstrap 5**, and data science tooling.</li>
+                <li><i class="fas fa-code-branch me-2 text-primary"></i> **Development Process:** Evidence of a workflow
+                  using **Linux** and **Git**, demonstrating efficient software development practices.</li>
+              </ul>
+              <p class="mt-4 small">
+                Use the menu on the left or the main header links to quickly navigate through the skills and project
+                examples.
+              </p>
+              <hr class="mt-5">
+              <!------------------------------------ Inject the generated HTML into the DOM ----------------------------------->
+              {% for section_id in content_sections %}
+              {% with content = load_from_include(section_id ~ ".html") %}
+              {% if content %}
+              {{ content | safe }}
+              {% else %}
+              <h2 id="{{section_id}}" class="fw-bold"><img src="static/assets/{{section_id}}.svg" alt="{{section_id}}"
+                  class="list-icon3 me-2">{{section_id|capitalize}}</h2>
+              <hr class="hrx" />
+              <p class="lead mt-3">Error loading content for: {{ section_id }}.html<br>Failed to include HTML file.</p>
+              <br><br>
+              <h1 class="fw-bold text-center text-primary" style="font-size: 8rem;">Coming Soon</h1><br>
+              <h1 class="fw-bold text-center text-primary" style="font-size: 3rem;">The website is under construction.
+              </h1><br><br>
+              {% endif %}
+              {% endwith %}
+              <hr class="mt-5">
+              {% endfor %}
+              <!------------------------------------ About -------------------------------------------------------------------->
+              <h2 id="iabout" class="fw-bold"><i class="fas fa-user-tie me-3 text-dark"></i>About Me</h2>
+              <hr class="hrx" />
+              <div class="row mt-3">
+                <div class="col-12 col-xl-7">
+                  <p class="lead fw-normal">
+                    I am a Full-Stack Developer with a primary focus on Backend engineering. I like to do everything related to
+                    computers and programming. I enjoy the whole process of turning ideas into code. I build something from nothing. I
+                    learn new technologies, programming languages, frameworks, etc. I figure out how things work. My passion for
+                    computers started a long time ago and was mainly connected with the automotive industry (UNIX/LINUX, C/C++, KSH,
+                    CATIA, VB, ...)
+                    A few years ago I decided to expand my knowledge and experience with modern technologies and newer, high-demand
+                    skills. Some of the skills and technologies can be found on this testing webpage.
+                    <br><br>
+                    I operate exclusively on a <strong>native Linux environment</strong>, which allows me to maintain a development
+                    workflow that is identical to production cloud environments. This "production-first" mindset ensures that the code
+                    I write is robust, container-ready, and optimized for modern infrastructure.
+                    <br><br>
+                    "Implemented a hybrid architecture that uses local K8s-optimized TensorFlow models in development and fails over to Cloud Vision APIs in serverless production to optimize latency and cost."
+                  </p>
+
+                </div>
+              
+                <!-- Quick Facts Box to fill space and look professional -->
+                <div class="col-12 col-xl-5">
+                  <div class="p-4 bg-gray border border-dark rounded shadow-sm">
+                    <h5 class="fw-bold mb-3">Quick Facts</h5>
+                    <ul class="list-unstyled mb-0">
+                      <li class="mb-3 d-flex align-items-start"><i class="fas fa-terminal mt-1 me-3 text-dark"></i><div>
+                          <strong>Development Environment</strong><br>
+                          <small class="text-dark">Native Linux (Debian/Ubuntu/Kubuntu)</small>
+                        </div>
+                      </li>
+                      <li class="mb-3 d-flex align-items-start"><i class="fas fa-graduation-cap mt-1 me-3 text-dark"></i>
+                        <div>
+                          <strong>Bootcamp Graduate</strong><br>
+                          <small class="text-dark">Intensive Full-Stack & DevOps: <strong>Python, Docker, Kubernetes</small>
+                        </div>
+                      </li>
+                      <li class="mb-3 d-flex align-items-start"><i class="fas fa-sync mt-1 me-3 text-dark"></i>
+                        <div>
+                          <strong>Professional Background</strong><br>
+                          <small class="text-dark">Transitioning with a focus on reliability and systematic problem-solving.</small>
+                        </div>
+                      </li>
+                      <li class="d-flex align-items-start"><i class="fas fa-rocket mt-1 me-3 text-dark"></i>
+                        <div>
+                          <strong>Current Focus</strong><br>
+                          <small class="text-dark">Cloud-Native applications, Backend Architecture & Performance Tuning</small>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <!------------------------------------ About Me -------------------------------------------------------------------->
+              <div class="mt-5 pt-4">
+                <h5 class="fw-bold"><i class="fas fa-map-signs me-2 text-dark"></i>Learning Roadmap & Future Integration</h5>
+                <p class="text-dark small">
+                  I am committed to continuous technical growth. My current focus is expanding this portfolio into a
+                  distributed system to demonstrate advanced backend and cloud-native patterns:
+                </p>
+                <div class="row g-3">
+                  <!-- Backend & Architecture -->
+                  <div class="col-12 col-xl-12 col-xxl-6">
+                    <div class="px-4 pt-3 border border-dark rounded shadow-sm bg-gray h-100">
+                      <h5 class="fw-bold">Advanced Backend & Architecture</h5>
+                      <ul class="list-unstyled text-dark pt-2">
+                        <li class="mb-2"><i class="fas me-2 fa-microchip me-2"></i><strong class="text-white">Microservices:</strong>
+                          Decoupling logic into independent, scalable services.</li>
+                        <li class="mb-2"><i class="fas me-2 fa-search me-2"></i><strong class="text-white">Elasticsearch:</strong>
+                          Implementing high-performance full-text search.</li>
+                        <li class="mb-2"><i class="fas me-2 fa-project-diagram me-2"></i><strong class="text-white">Asynchronous
+                            Tasks:</strong> Using Redis/Celery for background processing.</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <!-- Infrastructure & Observability -->
+                  <div class="col-12 col-xl-12 col-xxl-6">
+                    <div class="px-4 pt-3 border border-dark rounded shadow-sm bg-gray h-100">
+                      <h5 class="fw-bold">Cloud Ops & Observability</h5>
+                      <ul class="list-unstyled text-dark pt-2">
+                        <li class="mb-2"><i class="fas me-2 fa-code-branch me-2"></i><strong class="text-white">Terraform (IaC):</strong> Automating GCP infrastructure deployment.</li>
+                        <li class="mb-2"><i class="fas me-2 fa-chart-area me-2"></i><strong class="text-white">Monitoring:</strong> Visualizing metrics with Grafana & Prometheus.</li>
+                        <li class="mb-2"><i class="fas me-2 fa-infinity me-2"></i><strong class="text-white">CI/CD:</strong> Advanced GitHub Actions for automated testing/delivery.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!------------------------------------ Contact -------------------------------------------------------------------->
+              <hr class="mt-5">
+              <h2 id="icontact" class="fw-bold"><i class="fas fa-paper-plane me-3 text-dark"></i>Get In Touch</h2>
+              <hr class="hrx" />
+              <h5 class="fw-bold text-center mt-3">Radimir Dedecek</h5>
+              <p class="text-center">Software Developer</p>
+              <img src="static/assets/radimir_dedecek.png" class="mx-auto d-block" style="max-width:15%;"
+                alt="Radimir Dedecek - Profile Photo">
+              <p class="lead mt-3 text-center">
+                I am currently open to discussing new projects and opportunities. Feel free to connect via the methods
+                below.
+              </p>
+              <section class="contact-section mt-4 mb-5">
+                <div class="card-group justify-content-center">
+                    <div class="card py-3 mx-3 rounded" style="max-width:250px;"> 
+                      <div class="card-body text-center">
+                        <i class="fas fa-map-marked-alt fa-2x text-dark mb-2"></i>
+                        <h4 class="text-uppercase m-0">Address</h4>
+                        <hr class="my-4 mx-auto" />
+                        <div class="small text-dark">Nova Viska 66, 46331 Nova Ves, CZ</div>
+                      </div>
+                    </div>
+                    <div class="card py-3 mx-3 rounded" style="max-width:250px;">
+                      <div class="card-body text-center">
+                        <i class="fas fa-envelope fa-2x text-dark mb-2"></i>
+                        <h4 class="text-uppercase m-0">Email</h4>
+                        <hr class="my-4 mx-auto" />
+                        <div><a id="mailto" href="mailto:radimir.dedecek@gmail.com" class="stretched-link"
+                            target="_newtab"><div class="small text-dark">radimir.dedecek@gmail.com</div></a></div>
+                      </div>
+                    </div>
+                    <div class="card py-3 mx-3 rounded" style="max-width:250px;">
+                      <div class="card-body text-center">
+                        <i class="fas fa-mobile-alt fa-2x text-dark mb-2"></i>
+                        <h4 class="text-uppercase m-0">Phone</h4>
+                        <hr class="my-4 mx-auto" />
+                        <div class="small text-dark">+420 608260026</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-5 social d-flex justify-content-center d-none">
+                    <a class="mx-2" href="#!"><i class="fab fa-github"></i></a>
+                    <a class="mx-2" href="#!"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <br><br><br><br><br><br><br><br><br><br><br><br><br>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+  </main>
+  <!-- Footer -->
+  <footer id="footer" class="text-white bg-primary p-0 mx-0 mx-md-3 mx-lg-4 mx-xl-5 my-1 my-1 flex-shrink-0 shadow-top">
+    <!-- Using Jinja to calculate the year (2021 - Current Year) -->
+    {% set start_year = 2021 %}
+    {% set current_year = now().strftime('%Y') | int %}
+    {% set display_year = start_year ~ ' - ' ~ current_year if current_year > start_year else current_year %}
+    <div class="small text-center d-none d-md-block">
+      Copyright &copy; R.Dedecek {{ display_year }} All Rights Reserved (Built with Bootstrap 5)
+    </div>
+    <div class="small text-center d-md-none">
+      &copy; R.Dedecek {{ display_year }} All Rights Reserved
+    </div>
+  </footer>
+  <script>
+    // This variable is used by scripts.js to determine which content sections to observe for scrollspy.
+    window.CONTENT_SECTION_IDS = {{ content_sections | tojson }};
+  </script>
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Core theme JS-->
+  <!-- <script src="static/js/scripts.js"></script> -->
+  <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+  <!-- <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script> -->
+
+  <!-- Global Backend Activity Overlay -->
+  <div id="backend-wakeup-overlay" class="d-none" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(15, 23, 42, 0.85); z-index: 9999; 
+                display: none; flex-direction: column; align-items: center; justify-content: center;
+                backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+    <div class="text-center p-4 rounded-4 border border-dark shadow-2xl"
+      style="max-width: 380px; background: #1e293b; border-color: rgba(255,255,255,0.1) !important;">
+      <!-- Animated Spinner -->
+      <div class="spinner-border text-info mb-3" role="status"
+        style="width: 3.5rem; height: 3.5rem; border-width: 0.25em;">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <h4 class="text-white fw-bold mb-2">Processing Request</h4>
+      <p class="text-muted mb-3" style="font-size: 0.95rem; line-height: 1.5;">
+        The system is either waking up or processing a large data request.
+        Please stay on this page...
+      </p>
+      <div class="progress bg-dark mb-2" style="height: 6px; border-radius: 3px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar"
+          style="width: 100%"></div>
+      </div>
+      <small class="text-info text-uppercase fw-bold" style="letter-spacing: 1px; font-size: 0.7rem;">
+        Synchronizing with Cloud Backend...
+      </small>
+    </div>
+  </div>
+
+</body>
+</html>

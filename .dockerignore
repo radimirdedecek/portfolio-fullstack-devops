@@ -1,0 +1,37 @@
+# Ignore the local pkgs folder so it doesn't overwrite
+pkgs/
+
+# Python junk
+**/__pycache__/
+**/pycache/
+**/.pyc
+**/.pyo
+**/*.pyd
+.pytest_cache
+build/
+instance/
+
+# Environments and Secrets
+.venv/
+venv/
+.env
+serviceAccountKey.json
+**/navod.txt
+
+# Local Data/Cache (GCP will create these dynamically)
+tmdb_top_movies.json
+.pytest_cache/
+/.ipynb_checkpoints
+GCP_Deployment_Script.sh
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker*
+
+# C extensions
+**/*.so
