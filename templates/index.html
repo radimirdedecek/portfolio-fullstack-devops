@@ -96,24 +96,30 @@
               </ul>
             </div>
             <!-- BOTTOM SECTION -->
-            <div class="mt-auto p-2 pb-0 bg-transparent">
-              {% if index_html_info != "PRODUCTION" %}
-              <div class="alert bg-danger text-white small mb-1 p-1">
-                <strong>Flask ENV: (see .env file)</strong><br>
-                <small>{{index_html_info}}</small>
-              </div>
-              {% endif %}
-              <!-- <div class="mb-0 small text-muted text-center bg-transparent hide-on-short-screen"> -->
-              <div class="card mx-3 my-0 py-1 hide-on-short-screen">
-                <div class="card-body py-0 text-center">
-                  <i class="fas fa-envelope py-0 text-white"></i>
-                  <div class="py-0 small"><a id="mailto" href="mailto:radimir.dedecek@gmail.com" class="stretched-link"
-                      target="_newtab">radimir.dedecek@gmail.com</a></div>
-                </div>
+            {% if index_html_info != "PRODUCTION" %}
+            <div class="alert bg-danger text-white small mb-1 p-1 hide-on-short-screen">
+              <strong>Flask ENV: (see .env file)</strong><br>
+              <small>{{index_html_info}}</small>
+            </div>
+            {% endif %}
+            <!-- Small Social Card for Side Column -->
+            <div class="mt-auto card mx-1 my-1 py-0 hide-on-short-screen shadow-sm border-0 bg-dark">
+              <div class="card-body py-0 d-flex justify-content-center align-items-center gap-4">
+                <!-- EMAIL -->
+                <a href="mailto:radimir.dedecek@gmail.com" title="Email Me"
+                  class="text-dark icon-hover"> <i class="fas fa-envelope fa-lg"></i>
+                </a>
+                <!-- GITHUB -->
+                <a href="https://github.com/radimirdedecek/portfolio-fullstack-devops"
+                  target="_blank" title="GitHub Repository" class="text-dark icon-hover"><i class="fab fa-github fa-lg"></i>
+                </a>
+                <!-- LINKEDIN -->
+                <a href="https://www.linkedin.com/in/radimirdedecek" 
+                  target="_blank" title="LinkedIn Profile" class="text-dark icon-hover"><i class="fab fa-linkedin fa-lg"></i>
+                </a>
               </div>
             </div>
-            
-            </div>
+          </div>
         </div>
         <!-- RIGHT COLUMN -->
         <div class="col-12 col-md-9 col-lg-10 h-fill-parent p-0 m-0">
@@ -308,49 +314,77 @@
               </div>
               <!------------------------------------ Contact -------------------------------------------------------------------->
               <hr class="mt-5">
-              <h2 id="icontact" class="fw-bold"><i class="fas fa-paper-plane me-3 text-dark"></i>Get In Touch</h2>
-              <hr class="hrx" />
-              <h5 class="fw-bold text-center mt-3">Radimir Dedecek</h5>
-              <p class="text-center">Software Developer</p>
-              <img src="static/assets/radimir_dedecek.png" class="mx-auto d-block" style="max-width:15%;"
-                alt="Radimir Dedecek - Profile Photo">
-              <p class="lead mt-3 text-center">
-                I am currently open to discussing new projects and opportunities. Feel free to connect via the methods
-                below.
-              </p>
-              <section class="contact-section mt-4 mb-5">
-                <div class="card-group justify-content-center">
-                    <div class="card py-3 mx-3 rounded" style="max-width:250px;"> 
+              <section class="d-flex flex-column min-vh-100">
+                <h2 id="icontact" class="fw-bold"><i class="fas fa-paper-plane me-3 text-dark"></i>Get In Touch</h2>
+                <hr class="hrx" />
+                <div class="text-center mt-4">
+                  <h5 class="fw-bold mb-1">Radimir Dedecek</h5>
+                  <p class="text-muted">Senior Software Developer | Backend Specialist</p>
+                  <img src="static/assets/radimir_dedecek.png" class="mx-auto d-block" style="max-width:15%;"
+                    alt="Radimir Dedecek - Profile Photo">
+                  <p class="lead mx-auto" style="max-width: 700px; font-size: 1.1rem;">
+                    I am currently open to discussing new projects, technical collaborations, and professional opportunities.
+                    Feel free to connect via the platforms below.
+                  </p>
+                </div>
+                <section class="contact-section mt-4 mb-5">
+                  <div class="d-flex flex-wrap justify-content-center gap-3">
+                    <!-- ADDRESS -->
+                    <div class="card py-3 rounded-3 shadow-sm border-dark bg-gray" style="width: 210px;">
                       <div class="card-body text-center">
                         <i class="fas fa-map-marked-alt fa-2x text-dark mb-2"></i>
-                        <h4 class="text-uppercase m-0">Address</h4>
-                        <hr class="my-4 mx-auto" />
-                        <div class="small text-dark">Nova Viska 66, 46331 Nova Ves, CZ</div>
+                        <h6 class="text-uppercase fw-bold small m-0">Location</h6>
+                        <hr class="my-3 mx-auto" style="width: 50px;" />
+                        <div class="small text-dark">Nova Viska 66<br>46331 Nova Ves, CZ</div>
                       </div>
                     </div>
-                    <div class="card py-3 mx-3 rounded" style="max-width:250px;">
+                    <!-- EMAIL -->
+                    <div class="card py-3 rounded-3 shadow-sm border-dark bg-gray" style="width: 210px;">
                       <div class="card-body text-center">
                         <i class="fas fa-envelope fa-2x text-dark mb-2"></i>
-                        <h4 class="text-uppercase m-0">Email</h4>
-                        <hr class="my-4 mx-auto" />
-                        <div><a id="mailto" href="mailto:radimir.dedecek@gmail.com" class="stretched-link"
-                            target="_newtab"><div class="small text-dark">radimir.dedecek@gmail.com</div></a></div>
+                        <h6 class="text-uppercase fw-bold small m-0">Email</h6>
+                        <hr class="my-3 mx-auto" style="width: 50px;" />
+                        <a href="mailto:radimir.dedecek@gmail.com" class="stretched-link text-decoration-none">
+                          <div class="small text-dark text-truncate">radimir.dedecek@gmail.com</div>
+                        </a>
                       </div>
                     </div>
-                    <div class="card py-3 mx-3 rounded" style="max-width:250px;">
+                    <!-- PHONE -->
+                    <div class="card py-3 rounded-3 shadow-sm border-dark bg-gray" style="width: 210px;">
                       <div class="card-body text-center">
                         <i class="fas fa-mobile-alt fa-2x text-dark mb-2"></i>
-                        <h4 class="text-uppercase m-0">Phone</h4>
-                        <hr class="my-4 mx-auto" />
-                        <div class="small text-dark">+420 608260026</div>
+                        <h6 class="text-uppercase fw-bold small m-0">Phone</h6>
+                        <hr class="my-3 mx-auto" style="width: 50px;" />
+                        <div class="small text-truncate text-dark">+420 608 260 026</div>
+                      </div>
+                    </div>
+                    <!-- GITHUB  -->
+                    <div class="card py-3 rounded-3 shadow-sm bg-gray" style="width: 210px; border-bottom: 3px solid #ddd ">
+                      <div class="card-body text-center">
+                        <i class="fab fa-github fa-2x text-dark mb-2"></i>
+                        <h6 class="text-uppercase fw-bold small m-0">GitHub</h6>
+                        <hr class="my-3 mx-auto" style="width: 50px; border-color: #ddd;" />
+                        <a href="https://github.com/radimirdedecek/portfolio-fullstack-devops"
+                          class="stretched-link text-decoration-none small" 
+                          target="_blank"><div class="text-truncate">portfolio-repo</div></a>
+                      </div>
+                    </div>
+                    <!-- LINKEDIN -->
+                    <div class="card py-3 rounded-3 shadow-sm" style="width: 210px; background: #ced7df; border-bottom: 3px solid #0077b5 !important;">
+                      <div class="card-body text-center">
+                        <i class="fab fa-linkedin fa-2x mb-2" style="color: #0077b5;"></i>
+                        <h6 class="text-uppercase fw-bold small m-0" style="color: #0077b5;">LinkedIn</h6>
+                        <hr class="my-3 mx-auto" style="width: 50px; border-color: #0077b5;" />
+                        <a href="https://www.linkedin.com/in/radimirdedecek"
+                          class="stretched-link text-decoration-none text-dark small" style="color: #0077b5;"
+                          target="_blank"><div class="text-truncate" style="color: #0077b5;">/in/radimirdedecek</div></a>
                       </div>
                     </div>
                   </div>
-                  <div class="mb-5 social d-flex justify-content-center d-none">
-                    <a class="mx-2" href="#!"><i class="fab fa-github"></i></a>
-                    <a class="mx-2" href="#!"><i class="fab fa-linkedin"></i></a>
-                </div>
-                <br><br><br><br><br><br><br><br><br><br><br><br><br>
+                </section>
+                <!-- Spacer for better mobile scrolling -->
+                <!-- This flexible spacer pushes the content up and the footer down -->
+                <div class="flex-grow-1"></div>
               </section>
             </div>
           </div>

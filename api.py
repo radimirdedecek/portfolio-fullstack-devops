@@ -24,7 +24,7 @@ import base64
 import api_utils
       
 # --- CONSTANTS ONLY HERE IN api.py ---
-PORTFOLIO_VERSION = "V3.1"
+PORTFOLIO_VERSION = "V3.3"
 CONTENT_SECTIONS = [
     'python',
     'api',

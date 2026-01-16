@@ -11187,7 +11187,10 @@ body {
 }
 .contact-section .card {
   border: 0;
-  border-bottom: 0.25rem solid #64a19d;
+  border-bottom: .3rem solid #64a19d;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+  position: relative;
 }
 .contact-section .card h4, .contact-section .card .h4 {
   font-size: 0.8rem;
@@ -11195,29 +11198,33 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.15rem;
 }
-.contact-section .card hr {
+.contact-section .card hr {  
   opacity: 1;
   border-color: #64a19d;
+  border-color: #999;
   border-width: 0.25rem;
   width: 3rem;
 }
-.contact-section .social {
-  margin-top: 5rem;
+
+.contact-section a:hover {
+  /* color: rgba(255, 255, 255, 0.5); */
+  /* Bounce effect: Lift up and scale slightly */
+  transform: translateY(-8px) scale(1.02);
+  /* Elevate shadow on hover */
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
 }
-.contact-section .social a {
-  text-align: center;
-  height: 3rem;
-  width: 3rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 100%;
-  line-height: 3rem;
-  color: rgba(255, 255, 255, 0.3);
+
+/* Prevents the link text background from changing on hover */
+.contact-section a.stretched-link:hover {
+  background-color: transparent !important;
+  outline: none !important;
 }
-.contact-section .social a:hover {
-  color: rgba(255, 255, 255, 0.5);
-}
-.contact-section .social a:active {
-  color: #fff;
+
+/* Subtle icon animation on card hover */
+.contact-section .card:hover i {
+  transition: transform 0.3s ease;
+  transform: translateY(-4px) scale(1.2);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15) !important;
 }
 
 .footer {
@@ -11591,7 +11598,7 @@ background-color: var(--bs-gray-800);
 /* Hides the element when the browser height is less than 700px.
     Adjust '700px' based on when your list starts overlapping.
 */
-@media (max-height: 800px) {
+@media (max-height: 600px) {
   .hide-on-short-screen {
     display: none !important;
   }
@@ -11675,4 +11682,14 @@ background-color: var(--bs-gray-800);
   .col-left-sticky {
     display: none !important;
   }
+}
+/* Add a subtle hover effect to the side-icons */
+.icon-hover {
+    transition: transform 0.2s ease, color 0.2s ease;
+    text-decoration: none;
+}
+
+.icon-hover:hover {
+    transform: scale(1.2);
+    color: #fff !important; /* LinkedIn Blue or any accent color */
 }
